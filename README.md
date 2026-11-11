@@ -1,6 +1,12 @@
 <div align="center">
 
-# 🚗 lubelogger-mcp
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+  <img alt="lubelogger-mcp Logo" src="docs/logo.svg" width="460">
+</picture>
+
+<br/>
+<br/>
 
 [![CI](https://github.com/PedroLiu1999/lubelogger-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroLiu1999/lubelogger-mcp/actions/workflows/ci.yml)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
