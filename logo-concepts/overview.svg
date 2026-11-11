@@ -1,0 +1,272 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="954" viewBox="0 0 1600 954"><rect width="1600" height="954" fill="#f7f7f4"/><text x="60" y="78" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="40" font-weight="700" fill="#161616">LubeLogger MCP — Brand Identity</text><text x="60" y="116" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="20" fill="#6b6b6b">Concepts for review — pick a direction (or tell me what you like in each).</text><rect x="60" y="150" width="1480" height="744" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-neural-wheel" viewBox="0 0 256 256" x="90" y="190" width="1420" height="300" preserveAspectRatio="xMidYMid meet">
+  <title id="c0-title-neural-wheel">LubeLogger MCP - Neural Wheel Mark</title>
+  <!-- Outer Automotive Steering Wheel Rim + 3 MCP Architecture Terminals -->
+  <g id="c0-symbol" fill-rule="evenodd">
+    <!-- Steering Wheel Rim -->
+    <path fill="#1E293B" d="
+      M 128 16
+      A 112 112 0 1 0 128.01 16 Z
+      M 128 40
+      A 88 88 0 1 1 127.99 40 Z
+    "/>
+
+    <!-- Left Spoke (MCP Tools Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 40 120
+      H 92
+      V 136
+      H 40
+      Z
+    "/>
+
+    <!-- Right Spoke (MCP Resources Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 164 120
+      H 216
+      V 136
+      H 164
+      Z
+    "/>
+
+    <!-- Bottom Spoke (MCP Prompts Terminal) connecting to bottom of drop -->
+    <path fill="#1E293B" d="
+      M 120 178
+      H 136
+      V 216
+      H 120
+      Z
+    "/>
+
+    <!-- Central Amber Lube Oil Droplet with AI Spark Negative Space Cutout -->
+    <path fill="#F59E0B" d="
+      M 128 46
+      C 128 46 172 104 172 138
+      A 44 44 0 0 1 84 138
+      C 84 104 128 46 128 46 Z
+      M 128 110
+      C 133 127 141 133 154 138
+      C 141 143 133 149 128 166
+      C 123 149 115 143 102 138
+      C 115 133 123 127 128 110 Z
+    "/>
+  </g>
+</svg></g><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-lockup" viewBox="0 0 760 256" x="90" y="514" width="1420" height="120" preserveAspectRatio="xMidYMid meet">
+  <title id="l0-title-lockup">LubeLogger MCP Horizontal Lockup</title>
+  
+  <!-- Left: The Mark with explicit fill-rule="evenodd" -->
+  <g id="l0-symbol" fill-rule="evenodd" transform="translate(10, 0)">
+    <!-- Steering Wheel Rim -->
+    <path fill="#1E293B" d="
+      M 128 16
+      A 112 112 0 1 0 128.01 16 Z
+      M 128 40
+      A 88 88 0 1 1 127.99 40 Z
+    "/>
+
+    <!-- Left Spoke connecting into the drop -->
+    <path fill="#1E293B" d="
+      M 40 120
+      H 92
+      V 136
+      H 40
+      Z
+    "/>
+
+    <!-- Right Spoke connecting into the drop -->
+    <path fill="#1E293B" d="
+      M 164 120
+      H 216
+      V 136
+      H 164
+      Z
+    "/>
+
+    <!-- Bottom Spoke connecting to bottom of drop -->
+    <path fill="#1E293B" d="
+      M 120 178
+      H 136
+      V 216
+      H 120
+      Z
+    "/>
+
+    <!-- Central Amber Lube Oil Droplet with AI Spark Cutout -->
+    <path fill="#F59E0B" fill-rule="evenodd" d="
+      M 128 46
+      C 128 46 172 104 172 138
+      A 44 44 0 0 1 84 138
+      C 84 104 128 46 128 46 Z
+      M 128 110
+      C 133 127 141 133 154 138
+      C 141 143 133 149 128 166
+      C 123 149 115 143 102 138
+      C 115 133 123 127 128 110 Z
+    "/>
+  </g>
+
+  <!-- Right: Wordmark -->
+  <text x="270" y="146" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#1E293B" letter-spacing="-1.5">lubelogger</text>
+  
+  <!-- "MCP" Tech Pill Badge -->
+  <g transform="translate(615, 96)">
+    <rect width="105" height="54" rx="14" fill="#1E293B"/>
+    <text x="52" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace" font-size="28" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="1.5">MCP</text>
+    <path fill="#F59E0B" d="M 96 -6 C 98 0 100 2 106 4 C 100 6 98 8 96 14 C 94 8 92 6 86 4 C 92 2 94 0 96 -6 Z"/>
+  </g>
+</svg></g><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-neural-wheel" viewBox="0 0 256 256" x="90" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title id="s064-title-neural-wheel">LubeLogger MCP - Neural Wheel Mark</title>
+  <!-- Outer Automotive Steering Wheel Rim + 3 MCP Architecture Terminals -->
+  <g id="s064-symbol" fill-rule="evenodd">
+    <!-- Steering Wheel Rim -->
+    <path fill="#1E293B" d="
+      M 128 16
+      A 112 112 0 1 0 128.01 16 Z
+      M 128 40
+      A 88 88 0 1 1 127.99 40 Z
+    "/>
+
+    <!-- Left Spoke (MCP Tools Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 40 120
+      H 92
+      V 136
+      H 40
+      Z
+    "/>
+
+    <!-- Right Spoke (MCP Resources Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 164 120
+      H 216
+      V 136
+      H 164
+      Z
+    "/>
+
+    <!-- Bottom Spoke (MCP Prompts Terminal) connecting to bottom of drop -->
+    <path fill="#1E293B" d="
+      M 120 178
+      H 136
+      V 216
+      H 120
+      Z
+    "/>
+
+    <!-- Central Amber Lube Oil Droplet with AI Spark Negative Space Cutout -->
+    <path fill="#F59E0B" d="
+      M 128 46
+      C 128 46 172 104 172 138
+      A 44 44 0 0 1 84 138
+      C 84 104 128 46 128 46 Z
+      M 128 110
+      C 133 127 141 133 154 138
+      C 141 143 133 149 128 166
+      C 123 149 115 143 102 138
+      C 115 133 123 127 128 110 Z
+    "/>
+  </g>
+</svg></g><text x="122" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-neural-wheel" viewBox="0 0 256 256" x="180" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title id="s032-title-neural-wheel">LubeLogger MCP - Neural Wheel Mark</title>
+  <!-- Outer Automotive Steering Wheel Rim + 3 MCP Architecture Terminals -->
+  <g id="s032-symbol" fill-rule="evenodd">
+    <!-- Steering Wheel Rim -->
+    <path fill="#1E293B" d="
+      M 128 16
+      A 112 112 0 1 0 128.01 16 Z
+      M 128 40
+      A 88 88 0 1 1 127.99 40 Z
+    "/>
+
+    <!-- Left Spoke (MCP Tools Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 40 120
+      H 92
+      V 136
+      H 40
+      Z
+    "/>
+
+    <!-- Right Spoke (MCP Resources Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 164 120
+      H 216
+      V 136
+      H 164
+      Z
+    "/>
+
+    <!-- Bottom Spoke (MCP Prompts Terminal) connecting to bottom of drop -->
+    <path fill="#1E293B" d="
+      M 120 178
+      H 136
+      V 216
+      H 120
+      Z
+    "/>
+
+    <!-- Central Amber Lube Oil Droplet with AI Spark Negative Space Cutout -->
+    <path fill="#F59E0B" d="
+      M 128 46
+      C 128 46 172 104 172 138
+      A 44 44 0 0 1 84 138
+      C 84 104 128 46 128 46 Z
+      M 128 110
+      C 133 127 141 133 154 138
+      C 141 143 133 149 128 166
+      C 123 149 115 143 102 138
+      C 115 133 123 127 128 110 Z
+    "/>
+  </g>
+</svg></g><text x="196" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-neural-wheel" viewBox="0 0 256 256" x="238" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title id="s016-title-neural-wheel">LubeLogger MCP - Neural Wheel Mark</title>
+  <!-- Outer Automotive Steering Wheel Rim + 3 MCP Architecture Terminals -->
+  <g id="s016-symbol" fill-rule="evenodd">
+    <!-- Steering Wheel Rim -->
+    <path fill="#1E293B" d="
+      M 128 16
+      A 112 112 0 1 0 128.01 16 Z
+      M 128 40
+      A 88 88 0 1 1 127.99 40 Z
+    "/>
+
+    <!-- Left Spoke (MCP Tools Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 40 120
+      H 92
+      V 136
+      H 40
+      Z
+    "/>
+
+    <!-- Right Spoke (MCP Resources Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 164 120
+      H 216
+      V 136
+      H 164
+      Z
+    "/>
+
+    <!-- Bottom Spoke (MCP Prompts Terminal) connecting to bottom of drop -->
+    <path fill="#1E293B" d="
+      M 120 178
+      H 136
+      V 216
+      H 120
+      Z
+    "/>
+
+    <!-- Central Amber Lube Oil Droplet with AI Spark Negative Space Cutout -->
+    <path fill="#F59E0B" d="
+      M 128 46
+      C 128 46 172 104 172 138
+      A 44 44 0 0 1 84 138
+      C 84 104 128 46 128 46 Z
+      M 128 110
+      C 133 127 141 133 154 138
+      C 141 143 133 149 128 166
+      C 123 149 115 143 102 138
+      C 115 133 123 127 128 110 Z
+    "/>
+  </g>
+</svg></g><text x="246" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">A · Neural Wheel (Connected)</text><text x="90.0" y="814" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Steering wheel rim with connected horizontal protocol spokes framing the central AI-spark fluid droplet.</text></svg>

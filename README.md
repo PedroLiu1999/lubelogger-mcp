@@ -23,44 +23,9 @@ Designed for self-hosted VPS deployments alongside LubeLogger, `lubelogger-mcp` 
 
 ## Architecture
 
-```
-┌────────────────────────────────────────────────────────┐
-│             AI Assistant (Client)                      │
-│   (Claude Desktop, Cursor, Google Gemini, Agents)     │
-└───────────────────────────┬────────────────────────────┘
-                            │
-               Streamable HTTP (POST /mcp)
-               OAuth 2.1 Bearer Token (PKCE)
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                  lubelogger-mcp                        │
-│                                                        │
-│  ┌─────────────────────────┐  ┌─────────────────────┐  │
-│  │   Embedded OAuth 2.1    │  │  MCP Server Engine  │  │
-│  │  - RFC 7591 Dyn. Reg    │  │  - 7 Read Tools     │  │
-│  │  - PKCE S256 Verifier   │  │  - 5 Resource       │  │
-│  │  - HTML Consent Screen  │  │    Facades          │  │
-│  │  - Persistent TokenStore│  │  - 3 Ops Tools      │  │
-│  └─────────────────────────┘  └──────────┬──────────┘  │
-│                                          │             │
-│  ┌───────────────────────────────────────┴──────────┐  │
-│  │          LubeLogger Gateway & Resolver           │  │
-│  │  - In-Process Vehicle Name & Plate Matcher       │  │
-│  │  - Levenshtein Fuzzy Typo Suggestions            │  │
-│  │  - In-Memory Vehicle Cache (TTL)                 │  │
-│  │  - Culture-Invariant Decimal Formatting          │  │
-│  └───────────────────────────┬──────────────────────┘  │
-└──────────────────────────────┼─────────────────────────┘
-                               │
-                REST API (x-api-key / Basic)
-                               │
-                               ▼
-┌────────────────────────────────────────────────────────┐
-│               Self-Hosted LubeLogger                   │
-│        (Vehicles, Gas, Service, Repairs, Plans)        │
-└────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/architecture.svg" alt="lubelogger-mcp Architecture" width="100%">
+</p>
 
 ---
 

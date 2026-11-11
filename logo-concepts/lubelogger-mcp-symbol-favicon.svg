@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>LubeLogger MCP</title><g transform="translate(-12.42 -12.42) scale(1.097)">
+  <title id="title-neural-wheel">LubeLogger MCP - Neural Wheel Mark</title>
+  <!-- Outer Automotive Steering Wheel Rim + 3 MCP Architecture Terminals -->
+  <g id="symbol" fill-rule="evenodd">
+    <!-- Steering Wheel Rim -->
+    <path fill="#1E293B" d="
+      M 128 16
+      A 112 112 0 1 0 128.01 16 Z
+      M 128 40
+      A 88 88 0 1 1 127.99 40 Z
+    "/>
+
+    <!-- Left Spoke (MCP Tools Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 40 120
+      H 92
+      V 136
+      H 40
+      Z
+    "/>
+
+    <!-- Right Spoke (MCP Resources Terminal) connecting directly into the drop -->
+    <path fill="#1E293B" d="
+      M 164 120
+      H 216
+      V 136
+      H 164
+      Z
+    "/>
+
+    <!-- Bottom Spoke (MCP Prompts Terminal) connecting to bottom of drop -->
+    <path fill="#1E293B" d="
+      M 120 178
+      H 136
+      V 216
+      H 120
+      Z
+    "/>
+
+    <!-- Central Amber Lube Oil Droplet with AI Spark Negative Space Cutout -->
+    <path fill="#F59E0B" d="
+      M 128 46
+      C 128 46 172 104 172 138
+      A 44 44 0 0 1 84 138
+      C 84 104 128 46 128 46 Z
+      M 128 110
+      C 133 127 141 133 154 138
+      C 141 143 133 149 128 166
+      C 123 149 115 143 102 138
+      C 115 133 123 127 128 110 Z
+    "/>
+  </g>
+</g></svg>

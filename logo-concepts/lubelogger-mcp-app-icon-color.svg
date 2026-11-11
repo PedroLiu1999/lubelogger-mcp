@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title-app-icon-color">
+  <title id="title-app-icon-color">LubeLogger MCP App Icon (Color on Dark)</title>
+  <!-- Background Squircle Tile -->
+  <rect width="256" height="256" rx="56" fill="#0F172A"/>
+  
+  <g fill-rule="evenodd">
+    <!-- Wheel Rim in Clean Off-White -->
+    <path fill="#F8FAFC" d="
+      M 128 32
+      A 96 96 0 1 0 128.01 32 Z
+      M 128 52
+      A 76 76 0 1 1 127.99 52 Z
+    "/>
+
+    <!-- Left Spoke: Tools Terminal connected to drop -->
+    <path fill="#F8FAFC" d="
+      M 52 121
+      H 96
+      V 135
+      H 52
+      Z
+    "/>
+
+    <!-- Right Spoke: Resources Terminal connected to drop -->
+    <path fill="#F8FAFC" d="
+      M 160 121
+      H 204
+      V 135
+      H 160
+      Z
+    "/>
+
+    <!-- Bottom Spoke: Prompts Terminal connected to drop -->
+    <path fill="#F8FAFC" d="
+      M 121 173
+      H 135
+      V 204
+      H 121
+      Z
+    "/>
+
+    <!-- Central Fluid Droplet in Vibrant Amber with AI Spark Cutout -->
+    <path fill="#F59E0B" d="
+      M 128 58
+      C 128 58 166 108 166 138
+      A 38 38 0 0 1 90 138
+      C 90 108 128 58 128 58 Z
+      M 128 114
+      C 132 129 139 134 150 138
+      C 139 142 132 147 128 162
+      C 124 147 117 142 106 138
+      C 117 134 124 129 128 114 Z
+    "/>
+  </g>
+</svg>

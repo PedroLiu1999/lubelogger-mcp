@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title-b">
+  <title id="title-b">LubeLogger MCP - Protocol Ligature Mark</title>
+  <!-- Outer Amber 8-Tooth Gear Ribbon with Dark Border -->
+  <path fill="#F59E0B" stroke="#1E293B" stroke-width="6" stroke-linejoin="round" d="M 109.2 15.6 L 146.8 15.6 L 149.0 46.7 L 170.6 55.6 L 194.2 35.2 L 220.8 61.8 L 200.4 85.4 L 209.3 107.0 L 240.4 109.2 L 240.4 146.8 L 209.3 149.0 L 200.4 170.6 L 220.8 194.2 L 194.2 220.8 L 170.6 200.4 L 149.0 209.3 L 146.8 240.4 L 109.2 240.4 L 107.0 209.3 L 85.4 200.4 L 61.8 220.8 L 35.2 194.2 L 55.6 170.6 L 46.7 149.0 L 15.6 146.8 L 15.6 109.2 L 46.7 107.0 L 55.6 85.4 L 35.2 61.8 L 61.8 35.2 L 85.4 55.6 L 107.0 46.7 Z"/>
+  <!-- Inner Graphite Core Gear -->
+  <path fill="#1E293B" d="M 112.2 33.3 L 143.8 33.3 L 144.5 64.1 L 161.5 71.1 L 183.7 49.8 L 206.2 72.3 L 184.9 94.5 L 191.9 111.5 L 222.7 112.2 L 222.7 143.8 L 191.9 144.5 L 184.9 161.5 L 206.2 183.7 L 183.7 206.2 L 161.5 184.9 L 144.5 191.9 L 143.8 222.7 L 112.2 222.7 L 111.5 191.9 L 94.5 184.9 L 72.3 206.2 L 49.8 183.7 L 71.1 161.5 L 64.1 144.5 L 33.3 143.8 L 33.3 112.2 L 64.1 111.5 L 71.1 94.5 L 49.8 72.3 L 72.3 49.8 L 94.5 71.1 L 111.5 64.1 Z"/>
+  
+  <!-- "LM" Monogram: Slanted L with interlocking MCP "M" -->
+  <g fill="#F59E0B">
+    <!-- Italic "L" -->
+    <polygon points="104,78 126,78 98,170 132,170 128,190 76,190 84,170 104,78"/>
+    <!-- Stylized "M" (Model Context Protocol) -->
+    <polygon points="138,114 154,114 164,152 174,114 190,114 174,190 158,190 150,156 142,190 126,190"/>
+    <!-- AI Spark above the LM junction -->
+    <path fill="#FDE047" stroke="#1E293B" stroke-width="2" d="M 134 50 C 137 60 141 64 151 67 C 141 70 137 74 134 84 C 131 74 127 70 117 67 C 127 64 131 60 134 50 Z"/>
+  </g>
+</svg>
