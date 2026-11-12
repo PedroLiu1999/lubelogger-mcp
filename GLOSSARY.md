@@ -66,9 +66,13 @@ _Avoid_: SSE-only, standard REST
 The built-in RFC 6749 / RFC 7636 / RFC 7591 OAuth server that handles client authorization, PKCE verification (`S256`), dynamic client registration, and access/refresh token lifecycle without third-party identity providers.
 _Avoid_: External auth, Clerk, Auth0
 
-**Consent Passphrase**:
-The single admin secret (`OAUTH_ADMIN_PASSWORD`) prompted on the HTML authorization screen when granting an AI assistant access to the MCP server.
-_Avoid_: User password, login credential
+**API-Key-First Authorization**:
+The primary, zero-password authentication mechanism where the user authorizes an AI assistant using a disposable, revocable LubeLogger API Key (`x-api-key`) generated in LubeLogger under *Settings ➔ Profile ➔ API Keys*. Ensures master account passwords are never collected or stored.
+_Avoid_: User password, plaintext secret
+
+**Consent Screen**:
+The branded OAuth 2.1 `/authorize` consent page styled with LubeLogger's dark theme palette and official LubeLogger MCP logo lockup, prompting the user for an API key or account credentials before issuing an authorization code.
+_Avoid_: Admin passphrase, generic login
 
 **Resource Facade**:
 A consolidated, multi-action MCP tool (e.g., `manage_vehicles`, `manage_records`) providing create, update, and delete actions with in-process name resolution and standardized result envelopes.

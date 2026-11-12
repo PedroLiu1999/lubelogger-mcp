@@ -132,6 +132,17 @@ curl http://127.0.0.1:3000/healthz
 
 ## Connecting AI Clients
 
+### Authentication & Security (Zero-Password Architecture)
+
+`lubelogger-mcp` implements an **API-Key-First Branded Consent Screen** (the "Home Assistant Pattern"):
+
+* **Zero Plaintext or Decodable Passwords:** Your primary LubeLogger account password is never collected, transmitted, or stored.
+* **Revocable Capability Tokens:** Authentication relies on disposable LubeLogger API keys (`x-api-key`). If ever rotated or deleted in LubeLogger under **Settings ➔ Profile ➔ API Keys**, access is instantly revoked without risking your master account login.
+* **Branded Dark Theme:** The `/authorize` page features native LubeLogger dark styling (`#0F172A` / `#1E293B`), the official **LubeLogger MCP logo** (`docs/logo-dark.svg`), and direct deeplinks to your LubeLogger instance settings.
+* **OAuth 2.1 Compliant:** Fully implements RFC 7636 PKCE (`S256`), RFC 7591 dynamic client registration, and RFC 6750 Bearer token lifecycles.
+
+For deeper architectural analysis, see [docs/spec-api-key-first-auth.md](docs/spec-api-key-first-auth.md) and [docs/research-ha-mcp-auth.md](docs/research-ha-mcp-auth.md).
+
 ### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
@@ -146,14 +157,14 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-When connecting for the first time, your browser will open to `/authorize`. Authorize access using your **LubeLogger API Key** (recommended for zero-password security) or your **LubeLogger Username & Password**.
+When connecting for the first time, your browser will open to `/authorize`. Authorize access by pasting your **LubeLogger API Key** (generated under *Settings ➔ Profile ➔ API Keys* with Editor or Manager permissions).
 
 ### Cursor & Google Gemini
 
 1. Add a **Custom MCP Server**.
 2. Select **Server URL** / **Streamable HTTP**.
 3. Set the endpoint: `https://lubelogger-mcp.example.com/mcp`.
-4. Approve the OAuth authorization prompt.
+4. Enter your LubeLogger API key when prompted on the branded authorization screen.
 
 ---
 
