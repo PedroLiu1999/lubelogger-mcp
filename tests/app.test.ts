@@ -153,40 +153,33 @@ describe('App & MCP Endpoints', () => {
     expect(res.body.lubeLogger).toBeUndefined();
   });
 
-  it('serves brand assets', async () => {
-    const logoRes = await request(app)
-      .get('/logo.svg')
-      .set('Host', 'mcp.example.com');
-    expect(logoRes.status).toBe(200);
-    expect(logoRes.headers['content-type']).toContain('image/svg+xml');
-    const logoText = logoRes.text || logoRes.body.toString('utf8');
-    expect(logoText).toContain('LubeLogger MCP Logo');
-
+  it('serves required brand assets and returns 404 on pruned asset endpoints', async () => {
+    // Essential assets
     const logoDarkRes = await request(app)
       .get('/logo-dark.svg')
       .set('Host', 'mcp.example.com');
     expect(logoDarkRes.status).toBe(200);
     expect(logoDarkRes.headers['content-type']).toContain('image/svg+xml');
-    const logoDarkText = logoDarkRes.text || logoDarkRes.body.toString('utf8');
-    expect(logoDarkText).toContain('LubeLogger MCP Logo (Dark Mode)');
 
-    const symbolRes = await request(app)
-      .get('/logo-symbol.svg')
+    const symbolPngRes = await request(app)
+      .get('/logo-symbol.png')
       .set('Host', 'mcp.example.com');
-    expect(symbolRes.status).toBe(200);
-    expect(symbolRes.headers['content-type']).toContain('image/svg+xml');
-    const symbolText = symbolRes.text || symbolRes.body.toString('utf8');
-    expect(symbolText).toContain('LubeLogger MCP - Neural Wheel Mark');
+    expect(symbolPngRes.status).toBe(200);
 
-    const logoPngRes = await request(app)
-      .get('/logo.png')
-      .set('Host', 'mcp.example.com');
-    expect(logoPngRes.status).toBe(200);
-
-    const favRes = await request(app)
-      .get('/favicon.ico')
-      .set('Host', 'mcp.example.com');
-    expect(favRes.status).toBe(200);
+    // Pruned endpoints must return 404
+    for (const pruned of [
+      '/logo.svg',
+      '/logo-symbol.svg',
+      '/logo.png',
+      '/logo-dark.png',
+      '/favicon.ico',
+      '/apple-touch-icon.png',
+    ]) {
+      const res = await request(app)
+        .get(pruned)
+        .set('Host', 'mcp.example.com');
+      expect(res.status).toBe(404);
+    }
   });
 
   it('returns 401 on /mcp without bearer token', async () => {
