@@ -15,11 +15,38 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Extract Release Notes
+        run: |
+          node -e '
+            const fs = require("fs");
+            const tag = process.env.GITHUB_REF_NAME || "";
+            const version = tag.replace(/^v/, "");
+            let body = "";
+            if (fs.existsSync("CHANGELOG.md")) {
+              const changelog = fs.readFileSync("CHANGELOG.md", "utf8");
+              const regex = new RegExp("## \\[" + version + "\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\[|$)");
+              const match = changelog.match(regex);
+              if (match && match[1].trim()) {
+                body = match[1].trim();
+              }
+            }
+            if (!body) {
+              try {
+                const { execSync } = require("child_process");
+                body = execSync(`git tag -l --format="%(contents)" ${tag}`, { encoding: "utf8" }).trim();
+              } catch (_) {}
+            }
+            fs.writeFileSync("RELEASE_NOTES.md", body);
+          '
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
