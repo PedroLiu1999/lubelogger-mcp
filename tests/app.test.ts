@@ -27,6 +27,8 @@ describe('App & MCP Endpoints', () => {
       LUBELOGGER_URL: 'http://localhost:8383',
       LUBELOGGER_API_KEY: 'test-key',
       CACHE_TTL_SECONDS: 30,
+      MCP_RATE_LIMIT_WINDOW_MS: 60000,
+      MCP_RATE_LIMIT_MAX: 120,
     };
 
     mockGateway = {

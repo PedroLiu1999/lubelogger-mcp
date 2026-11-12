@@ -43,6 +43,8 @@ describe('Embedded OAuth 2.1 Server', () => {
       LUBELOGGER_URL: 'http://localhost:8383',
       LUBELOGGER_API_KEY: 'test-key',
       CACHE_TTL_SECONDS: 30,
+      MCP_RATE_LIMIT_WINDOW_MS: 60000,
+      MCP_RATE_LIMIT_MAX: 120,
     };
 
     mockFetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
