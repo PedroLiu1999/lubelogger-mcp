@@ -9,6 +9,7 @@ import { createApp } from '../src/app.js';
 import { FileTokenStore, MAX_REGISTERED_CLIENTS } from '../src/auth/tokenStore.js';
 import type { AppConfig } from '../src/config.js';
 import type { LubeLoggerGateway } from '../src/gateway/types.js';
+import { issueBearerToken } from './helpers/auth.js';
 
 function populateClients(store: FileTokenStore, count: number): void {
   for (let i = 1; i <= count; i++) {
@@ -134,95 +135,7 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(res.body.redirect_uris).toEqual(['http://localhost:54321/callback']);
   });
 
-  it('automatically evicts least recently used dynamic clients when exceeding MAX_REGISTERED_CLIENTS', () => {
-    const store = new FileTokenStore(tmpDataDir);
-    populateClients(store, MAX_REGISTERED_CLIENTS);
-
-    expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
-    expect(store.getClient('client-1')).toBeDefined();
-
-    // Access client-1 to mark it recently used
-    store.getClient('client-1');
-
-    // Register a 21st client
-    store.saveClient({
-      client_id: 'client-21',
-      redirect_uris: ['http://localhost/callback'],
-      token_endpoint_auth_method: 'none',
-    });
-
-    expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
-    expect(store.getClient('client-21')).toBeDefined();
-    expect(store.getClient('client-1')).toBeDefined();
-    // client-2 was least recently used, so it was evicted
-    expect(store.getClient('client-2')).toBeUndefined();
-  });
-
-  it('preserves active clients during eviction when their access token or user credentials are used', () => {
-    const store = new FileTokenStore(tmpDataDir);
-    populateClients(store, MAX_REGISTERED_CLIENTS);
-
-    // Save token for client-1
-    store.saveTokens({
-      token: 'token-client-1',
-      clientId: 'client-1',
-      scopes: ['mcp:tools'],
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-      userCredentials: { apiKey: 'key-1' },
-    });
-
-    // Simulate active MCP request: getUserCredentials touches token-client-1
-    const creds = store.getUserCredentials('token-client-1');
-    expect(creds?.apiKey).toBe('key-1');
-
-    // Register a 21st client
-    store.saveClient({
-      client_id: 'client-21',
-      redirect_uris: ['http://localhost/callback'],
-      token_endpoint_auth_method: 'none',
-    });
-
-    expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
-    expect(store.getClient('client-21')).toBeDefined();
-    // client-1 was refreshed via getUserCredentials, so it is preserved
-    expect(store.getClient('client-1')).toBeDefined();
-    // client-2 was least recently used, so it was evicted
-    expect(store.getClient('client-2')).toBeUndefined();
-  });
-
-  it('persists last_seen_at timestamps across store reloads and evicts least recently used', () => {
-    const store1 = new FileTokenStore(tmpDataDir);
-    populateClients(store1, MAX_REGISTERED_CLIENTS);
-
-    // Save tokens for client-1, touching recency and persisting to disk
-    store1.saveTokens({
-      token: 'token-client-1',
-      clientId: 'client-1',
-      scopes: ['mcp:tools'],
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    });
-
-    const c1 = store1.getClient('client-1');
-    expect(c1?.last_seen_at).toBeDefined();
-
-    // Re-instantiate store from disk (simulating server restart)
-    const store2 = new FileTokenStore(tmpDataDir);
-    expect(store2.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
-
-    // Register 21st client
-    store2.saveClient({
-      client_id: 'client-21',
-      redirect_uris: ['http://localhost/callback'],
-      token_endpoint_auth_method: 'none',
-    });
-
-    expect(store2.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
-    expect(store2.getClient('client-21')).toBeDefined();
-    expect(store2.getClient('client-1')).toBeDefined();
-    expect(store2.getClient('client-2')).toBeUndefined();
-  });
-
-  it('registers 21st client through top-level HTTP POST /register without hitting capacity rejection', async () => {
+  it('automatically evicts least recently used dynamic client on HTTP POST /register and permits authorization for 21st client', async () => {
     const store = new FileTokenStore(tmpDataDir);
     populateClients(store, MAX_REGISTERED_CLIENTS);
 
@@ -232,32 +145,149 @@ describe('Embedded OAuth 2.1 Server', () => {
       fetchFn: mockFetch as any,
     });
 
-    const res = await request(testApp)
+    // Client-1 is accessed via HTTP /authorize
+    const auth1Res = await request(testApp)
+      .get('/authorize')
+      .set('Host', 'mcp.example.com')
+      .query({
+        response_type: 'code',
+        client_id: 'client-1',
+        redirect_uri: 'http://localhost/callback',
+        code_challenge: 'challenge123',
+        code_challenge_method: 'S256',
+      });
+    expect(auth1Res.status).toBe(200);
+
+    // Register 21st client via HTTP POST /register
+    const regRes = await request(testApp)
       .post('/register')
       .set('Host', 'mcp.example.com')
       .send({
         client_name: 'Client-21',
-        redirect_uris: ['http://localhost:5000/callback-21'],
+        redirect_uris: ['http://localhost/callback'],
         token_endpoint_auth_method: 'none',
       });
 
-    expect(res.status).toBe(201);
-    expect(res.body.client_id).toBeDefined();
-    const newClientId = res.body.client_id;
+    expect(regRes.status).toBe(201);
+    const newClientId = regRes.body.client_id;
+    expect(newClientId).toBeDefined();
 
-    // Verify 21st client can access /authorize
-    const authRes = await request(testApp)
+    // 21st client can access /authorize
+    const auth21Res = await request(testApp)
       .get('/authorize')
       .set('Host', 'mcp.example.com')
       .query({
         response_type: 'code',
         client_id: newClientId,
-        redirect_uri: 'http://localhost:5000/callback-21',
+        redirect_uri: 'http://localhost/callback',
         code_challenge: 'challenge123',
         code_challenge_method: 'S256',
       });
-    expect(authRes.status).toBe(200);
-    expect(authRes.text).toContain(newClientId);
+    expect(auth21Res.status).toBe(200);
+    expect(auth21Res.text).toContain(newClientId);
+
+    // Verify client-2 was evicted from store while refreshed client-1 and client-21 remain
+    const reloadedStore = new FileTokenStore(tmpDataDir);
+    expect(reloadedStore.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
+    expect(reloadedStore.getClient('client-2')).toBeUndefined();
+    expect(reloadedStore.getClient('client-1')).toBeDefined();
+    expect(reloadedStore.getClient(newClientId)).toBeDefined();
+  });
+
+  it('preserves active client MCP access over HTTP seam during dynamic client eviction', async () => {
+    const store = new FileTokenStore(tmpDataDir);
+    populateClients(store, MAX_REGISTERED_CLIENTS);
+
+    const testApp = createApp({
+      config,
+      gateway: mockGateway,
+      fetchFn: mockFetch as any,
+    });
+
+    // Issue bearer token for client-1 via HTTP OAuth flow
+    const token = await issueBearerToken(testApp, {
+      clientId: 'client-1',
+      redirectUri: 'http://localhost/callback',
+    });
+
+    // Make authenticated HTTP POST /mcp request with client-1's token
+    const mcpRes = await request(testApp)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+    expect(mcpRes.status).toBe(200);
+
+    // Register 21st client via HTTP POST /register
+    const regRes = await request(testApp)
+      .post('/register')
+      .set('Host', 'mcp.example.com')
+      .send({
+        client_name: 'Client-21',
+        redirect_uris: ['http://localhost/callback'],
+        token_endpoint_auth_method: 'none',
+      });
+    expect(regRes.status).toBe(201);
+
+    // Client-1's token continues to work on HTTP POST /mcp because it was actively used
+    const mcpRes2 = await request(testApp)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 2 });
+    expect(mcpRes2.status).toBe(200);
+
+    // client-2 was least recently used and evicted
+    const reloadedStore = new FileTokenStore(tmpDataDir);
+    expect(reloadedStore.getClient('client-2')).toBeUndefined();
+  });
+
+  it('persists client recency across application restarts over HTTP seam', async () => {
+    const store = new FileTokenStore(tmpDataDir);
+    populateClients(store, MAX_REGISTERED_CLIENTS);
+
+    const app1 = createApp({
+      config,
+      gateway: mockGateway,
+      fetchFn: mockFetch as any,
+    });
+
+    const token = await issueBearerToken(app1, {
+      clientId: 'client-1',
+      redirectUri: 'http://localhost/callback',
+    });
+    const mcpRes = await request(app1)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+    expect(mcpRes.status).toBe(200);
+
+    // Simulate server restart: create fresh app instance pointing to same DATA_DIR
+    const app2 = createApp({
+      config,
+      gateway: mockGateway,
+      fetchFn: mockFetch as any,
+    });
+
+    // Register 21st client via HTTP POST /register on restarted server
+    const regRes = await request(app2)
+      .post('/register')
+      .set('Host', 'mcp.example.com')
+      .send({
+        client_name: 'Client-21',
+        redirect_uris: ['http://localhost/callback'],
+        token_endpoint_auth_method: 'none',
+      });
+    expect(regRes.status).toBe(201);
+
+    // Active client-1 is still valid on restarted app; client-2 was evicted
+    const reloadedStore = new FileTokenStore(tmpDataDir);
+    expect(reloadedStore.getClient('client-1')).toBeDefined();
+    expect(reloadedStore.getClient('client-2')).toBeUndefined();
   });
 
   it('registers Google OpenAuth client even if disk persistence encounters errors', async () => {

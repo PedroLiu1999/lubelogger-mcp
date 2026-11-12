@@ -38,7 +38,6 @@ export interface CreateAppOptions {
   gateway?: LubeLoggerGateway;
   gatewayRegistry?: GatewayRegistry;
   fetchFn?: typeof fetch;
-  mcpRateLimiter?: express.RequestHandler;
 }
 
 export function createTokenRateLimiter() {
@@ -162,9 +161,14 @@ export function createApp(options: CreateAppOptions): Express {
 
   const readBrandAsset = (filename: string, fallback: Buffer): Buffer => {
     try {
-      const filePath = path.join(docsDir, filename);
-      if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath);
+      const candidates = [
+        path.join(docsDir, filename),
+        path.resolve(process.cwd(), 'docs', filename),
+      ];
+      for (const filePath of candidates) {
+        if (fs.existsSync(filePath)) {
+          return fs.readFileSync(filePath);
+        }
       }
     } catch {
       // Ignore disk error; use fallback
@@ -341,7 +345,10 @@ export function createApp(options: CreateAppOptions): Express {
     });
   });
 
-  const mcpRateLimiter = options.mcpRateLimiter ?? createMcpRateLimiter();
+  const mcpRateLimiter = createMcpRateLimiter({
+    windowMs: config.MCP_RATE_LIMIT_WINDOW_MS,
+    max: config.MCP_RATE_LIMIT_MAX,
+  });
 
   app.post('/mcp', mcpRateLimiter, bearerAuth, async (req, res) => {
     const authHeader = req.headers.authorization;

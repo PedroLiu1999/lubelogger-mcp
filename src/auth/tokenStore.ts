@@ -45,6 +45,10 @@ export interface StoredOAuthClient extends OAuthClientInformationFull {
   last_seen_at?: number;
 }
 
+export function getClientTimestamp(client: StoredOAuthClient): number {
+  return client.last_seen_at ?? (client.client_id_issued_at ? client.client_id_issued_at * 1000 : 0);
+}
+
 interface SerializedTokenStoreData {
   accessTokens: SerializedStoredToken[];
   refreshTokens: SerializedStoredToken[];
@@ -226,11 +230,9 @@ export class FileTokenStore {
       hydrateTokens(parsed.refreshTokens, this.refreshTokens, nowSeconds, this.encryptionKey);
 
       if (Array.isArray(parsed.clients)) {
-        const sortedClients = [...parsed.clients].sort((a, b) => {
-          const aTime = a.last_seen_at ?? (a.client_id_issued_at ? a.client_id_issued_at * 1000 : 0);
-          const bTime = b.last_seen_at ?? (b.client_id_issued_at ? b.client_id_issued_at * 1000 : 0);
-          return aTime - bTime;
-        });
+        const sortedClients = [...parsed.clients].sort(
+          (a, b) => getClientTimestamp(a) - getClientTimestamp(b),
+        );
         for (const client of sortedClients) {
           if (client && typeof client.client_id === 'string') {
             this.clients.set(client.client_id, client);
@@ -265,7 +267,33 @@ export class FileTokenStore {
     return serialized;
   }
 
+  private debounceTimer: NodeJS.Timeout | null = null;
+
+  private schedulePersist(): void {
+    if (this.debounceTimer) {
+      return;
+    }
+    this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = null;
+      this.persistToDisk();
+    }, 100);
+    this.debounceTimer.unref?.();
+  }
+
+  flush(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    this.persistToDisk();
+  }
+
   private persistToDisk(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
     const nowSeconds = Math.floor(Date.now() / 1000);
     evictExpiredTokens(this.accessTokens, nowSeconds);
     evictExpiredTokens(this.refreshTokens, nowSeconds);
@@ -299,6 +327,7 @@ export class FileTokenStore {
       target.last_seen_at = Date.now();
       this.clients.delete(clientId);
       this.clients.set(clientId, target);
+      this.schedulePersist();
     }
   }
 
@@ -311,9 +340,7 @@ export class FileTokenStore {
         evictTokensForClient(this.refreshTokens, lruClientId);
       }
     }
-    client.last_seen_at = Date.now();
-    this.clients.delete(client.client_id);
-    this.clients.set(client.client_id, client);
+    this.touchClient(client.client_id, client);
     this.persistToDisk();
   }
 

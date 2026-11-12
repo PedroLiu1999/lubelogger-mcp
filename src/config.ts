@@ -66,6 +66,8 @@ const configSchema = z
       .trim()
       .optional(),
     CACHE_TTL_SECONDS: z.coerce.number().int().min(0).default(30),
+    MCP_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(100).default(60000),
+    MCP_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(120),
   })
   .refine(
     (cfg) => {

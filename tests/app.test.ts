@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { Express } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createApp, createMcpRateLimiter } from '../src/app.js';
+import { createApp } from '../src/app.js';
 import type { AppConfig } from '../src/config.js';
 import type { LubeLoggerGateway } from '../src/gateway/types.js';
 import { issueBearerToken } from './helpers/auth.js';
@@ -311,10 +311,12 @@ describe('App & MCP Endpoints', () => {
 
   it('enforces rate limiting on POST /mcp', async () => {
     const limitedApp = createApp({
-      config,
+      config: {
+        ...config,
+        MCP_RATE_LIMIT_MAX: 2,
+      },
       gateway: mockGateway,
       fetchFn: mockFetch,
-      mcpRateLimiter: createMcpRateLimiter({ windowMs: 60000, max: 2 }),
     });
 
     const token = await issueBearerToken(limitedApp);
