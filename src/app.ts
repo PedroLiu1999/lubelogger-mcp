@@ -344,7 +344,6 @@ export function createApp(options: CreateAppOptions): Express {
     res.status(200).json({
       status: 'ok',
       ready: readiness.ready,
-      lastCheckedAt: readiness.lastCheckedAt,
     });
   });
 

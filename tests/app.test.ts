@@ -141,17 +141,13 @@ describe('App & MCP Endpoints', () => {
     expect(res.status).toBe(403);
   });
 
-  it('serves sanitized /healthz without exposing internal URLs or versions', async () => {
+  it('serves sanitized /healthz strictly matching { status: "ok", ready: boolean } schema', async () => {
     const res = await request(app)
       .get('/healthz')
       .set('Host', 'mcp.example.com');
 
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('ok');
-    expect(res.body.ready).toBe(true);
-    expect(res.body.serverUrl).toBeUndefined();
-    expect(res.body.serverVersion).toBeUndefined();
-    expect(res.body.lubeLogger).toBeUndefined();
+    expect(res.body).toEqual({ status: 'ok', ready: true });
   });
 
   it('serves required brand assets and returns 404 on pruned asset endpoints', async () => {
