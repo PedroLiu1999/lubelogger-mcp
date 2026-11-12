@@ -250,16 +250,23 @@ export class FileTokenStore {
     evictExpiredTokens(this.accessTokens, nowSeconds);
     evictExpiredTokens(this.refreshTokens, nowSeconds);
 
-    fs.mkdirSync(this.dataDir, { recursive: true });
-    const payload: SerializedTokenStoreData = {
-      accessTokens: Array.from(this.accessTokens.values()).map((t) => this.serializeToken(t)),
-      refreshTokens: Array.from(this.refreshTokens.values()).map((t) => this.serializeToken(t)),
-      clients: Array.from(this.clients.values()),
-    };
+    try {
+      fs.mkdirSync(this.dataDir, { recursive: true });
+      const payload: SerializedTokenStoreData = {
+        accessTokens: Array.from(this.accessTokens.values()).map((t) => this.serializeToken(t)),
+        refreshTokens: Array.from(this.refreshTokens.values()).map((t) => this.serializeToken(t)),
+        clients: Array.from(this.clients.values()),
+      };
 
-    const tempPath = `${this.filePath}.${randomUUID()}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2), 'utf8');
-    fs.renameSync(tempPath, this.filePath);
+      const tempPath = `${this.filePath}.${randomUUID()}.tmp`;
+      fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2), 'utf8');
+      fs.renameSync(tempPath, this.filePath);
+    } catch (err) {
+      console.error(
+        `[tokenStore] ⚠️ Failed to persist token store to disk (${this.filePath}):`,
+        err,
+      );
+    }
   }
 
   getClientCount(): number {

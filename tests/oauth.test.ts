@@ -121,6 +121,42 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(res.body.redirect_uris).toEqual(['http://localhost:54321/callback']);
   });
 
+  it('registers Google OpenAuth client even if disk persistence encounters errors', async () => {
+    const readOnlyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lubelogger-ro-test-'));
+    fs.chmodSync(readOnlyDir, 0o555);
+
+    try {
+      const unwriteableConfig: AppConfig = {
+        ...config,
+        DATA_DIR: readOnlyDir,
+        OAUTH_ALLOWED_REDIRECT_URIS: [
+          'http://localhost',
+          'https://oauth-redirect.googleusercontent.com/r/',
+        ],
+      };
+      const testApp = createApp({ config: unwriteableConfig, gateway: mockGateway, fetchFn: mockFetch as any });
+
+      const res = await request(testApp)
+        .post('/register')
+        .set('Host', 'mcp.example.com')
+        .set('User-Agent', 'OpenAuth')
+        .send({
+          client_name: 'Google',
+          token_endpoint_auth_method: 'client_secret_post',
+          redirect_uris: [
+            'https://oauth-redirect.googleusercontent.com/r/my-project',
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.client_id).toBeDefined();
+      expect(res.body.client_secret).toBeDefined();
+    } finally {
+      fs.chmodSync(readOnlyDir, 0o755);
+      fs.rmSync(readOnlyDir, { recursive: true, force: true });
+    }
+  });
+
   it('completes full OAuth 2.1 PKCE authorization code flow and token refresh', async () => {
     const clientId = 'my-test-client';
     const redirectUri = 'http://localhost:54321/callback';

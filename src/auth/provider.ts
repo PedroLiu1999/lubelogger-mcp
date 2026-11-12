@@ -337,60 +337,65 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
           client_id_issued_at?: number;
         },
       ) => {
-        const supportedAuthMethods = new Set<string>(SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS);
-        if (
-          client.token_endpoint_auth_method !== undefined &&
-          !supportedAuthMethods.has(client.token_endpoint_auth_method)
-        ) {
-          throw new InvalidClientMetadataError(
-            `Unsupported token_endpoint_auth_method: ${client.token_endpoint_auth_method}. Supported: ${SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS.join(', ')}`,
-          );
-        }
-
-        const isPublicClient = client.token_endpoint_auth_method === 'none';
-        const clientSecret = isPublicClient
-          ? undefined
-          : (client.client_secret ?? randomBytes(32).toString('hex'));
-        const clientSecretExpiresAt = isPublicClient ? undefined : client.client_secret_expires_at;
-        const authMethod = isPublicClient
-          ? 'none'
-          : (client.token_endpoint_auth_method ?? 'client_secret_basic');
-
-        const redirectUris = client.redirect_uris ?? [];
-        if (redirectUris.length === 0) {
-          throw new InvalidClientMetadataError(
-            'Client registration must include at least one redirect_uri',
-          );
-        }
-
-        for (const uri of redirectUris) {
-          if (!isAllowedRedirectUri(uri, this.config.OAUTH_ALLOWED_REDIRECT_URIS)) {
+        try {
+          const supportedAuthMethods = new Set<string>(SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS);
+          if (
+            client.token_endpoint_auth_method !== undefined &&
+            !supportedAuthMethods.has(client.token_endpoint_auth_method)
+          ) {
             throw new InvalidClientMetadataError(
-              `Redirect URI not allowed by server allowlist policy: ${uri}`,
+              `Unsupported token_endpoint_auth_method: ${client.token_endpoint_auth_method}. Supported: ${SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS.join(', ')}`,
             );
           }
+
+          const isPublicClient = client.token_endpoint_auth_method === 'none';
+          const clientSecret = isPublicClient
+            ? undefined
+            : (client.client_secret ?? randomBytes(32).toString('hex'));
+          const clientSecretExpiresAt = isPublicClient ? undefined : client.client_secret_expires_at;
+          const authMethod = isPublicClient
+            ? 'none'
+            : (client.token_endpoint_auth_method ?? 'client_secret_basic');
+
+          const redirectUris = client.redirect_uris ?? [];
+          if (redirectUris.length === 0) {
+            throw new InvalidClientMetadataError(
+              'Client registration must include at least one redirect_uri',
+            );
+          }
+
+          for (const uri of redirectUris) {
+            if (!isAllowedRedirectUri(uri, this.config.OAUTH_ALLOWED_REDIRECT_URIS)) {
+              throw new InvalidClientMetadataError(
+                `Redirect URI not allowed by server allowlist policy: ${uri}`,
+              );
+            }
+          }
+
+          const clientId = client.client_id ?? randomUUID();
+          if (this.tokenStore.getClient(clientId)) {
+            throw new InvalidClientMetadataError(
+              'Cannot overwrite existing client registration',
+            );
+          }
+
+          const registered: OAuthClientInformationFull = {
+            ...client,
+            client_id: clientId,
+            client_id_issued_at:
+              client.client_id_issued_at ?? Math.floor(Date.now() / 1000),
+            client_secret: clientSecret,
+            client_secret_expires_at: clientSecretExpiresAt,
+            token_endpoint_auth_method: authMethod,
+            redirect_uris: redirectUris,
+          };
+
+          this.tokenStore.saveClient(registered);
+          return registered;
+        } catch (error) {
+          console.error('[register] ❌ registerClient exception:', error);
+          throw error;
         }
-
-        const clientId = client.client_id ?? randomUUID();
-        if (this.tokenStore.getClient(clientId)) {
-          throw new InvalidClientMetadataError(
-            'Cannot overwrite existing client registration',
-          );
-        }
-
-        const registered: OAuthClientInformationFull = {
-          ...client,
-          client_id: clientId,
-          client_id_issued_at:
-            client.client_id_issued_at ?? Math.floor(Date.now() / 1000),
-          client_secret: clientSecret,
-          client_secret_expires_at: clientSecretExpiresAt,
-          token_endpoint_auth_method: authMethod,
-          redirect_uris: redirectUris,
-        };
-
-        this.tokenStore.saveClient(registered);
-        return registered;
       },
     };
   }

@@ -218,7 +218,7 @@ run_wizard() {
 banner "LubeLogger MCP Setup & Deployment Wizard"
 
 # Ensure data directory and docker-compose.yml exist in current working directory
-mkdir -p data
+mkdir -p data && chmod 777 data 2>/dev/null || true
 if [[ ! -f "docker-compose.yml" ]]; then
   DOCKER_COMPOSE_URL="https://raw.githubusercontent.com/PedroLiu1999/lubelogger-mcp/main/docker-compose.yml"
   printf '  %s• Downloading docker-compose.yml from GitHub...%s\n' "$CYAN" "$RESET"

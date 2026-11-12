@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-11-12
+
+### Fixed
+- **Dynamic Client Registration Resilience**: Wrapped `persistToDisk()` in a resilient `try/catch` so dynamic OAuth registration (`POST /register`) never fails with 500 when disk persistence encounters permission restrictions (`EACCES`). Clients and tokens are retained in-memory safely.
+- **Docker Volume Permissions**: Removed `USER node` in `Dockerfile` to match `actual-mcp` standards, preventing host bind-mount permission conflicts when `./data` is mounted to `/data`.
+- **Diagnostic Logging**: Added explicit exception logging to `registerClient` to surface exact stack traces rather than generic 500 errors.
+- **Setup Wizard Host Permissions**: Ensured `./data` directory has open permissions in `scripts/setup-wizard.sh`.
+
 ## [1.1.0] - 2026-11-12
 
 ### Added
