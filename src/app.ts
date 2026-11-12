@@ -37,12 +37,22 @@ export interface CreateAppOptions {
   gateway?: LubeLoggerGateway;
   gatewayRegistry?: GatewayRegistry;
   fetchFn?: typeof fetch;
+  mcpRateLimiter?: express.RequestHandler;
 }
 
 export function createTokenRateLimiter() {
   return rateLimit({
     windowMs: 60 * 1000,
     max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+}
+
+export function createMcpRateLimiter(options?: { windowMs?: number; max?: number }) {
+  return rateLimit({
+    windowMs: options?.windowMs ?? 60 * 1000,
+    max: options?.max ?? 120,
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -338,7 +348,9 @@ export function createApp(options: CreateAppOptions): Express {
     });
   });
 
-  app.post('/mcp', bearerAuth, async (req, res) => {
+  const mcpRateLimiter = options.mcpRateLimiter ?? createMcpRateLimiter();
+
+  app.post('/mcp', mcpRateLimiter, bearerAuth, async (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader ? authHeader.split(' ')[1] : undefined;
     const userCredentials = token ? oauthProvider.getUserCredentials(token) : undefined;

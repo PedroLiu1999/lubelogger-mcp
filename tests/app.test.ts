@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { Express } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createApp } from '../src/app.js';
+import { createApp, createMcpRateLimiter } from '../src/app.js';
 import type { AppConfig } from '../src/config.js';
 import type { LubeLoggerGateway } from '../src/gateway/types.js';
 import { issueBearerToken } from './helpers/auth.js';
@@ -13,6 +13,7 @@ describe('App & MCP Endpoints', () => {
   let tmpDataDir: string;
   let config: AppConfig;
   let mockGateway: LubeLoggerGateway;
+  let mockFetch: any;
   let app: Express;
 
   beforeEach(() => {
@@ -100,7 +101,7 @@ describe('App & MCP Endpoints', () => {
       createBackup: vi.fn(async () => ({ success: true, message: 'ok' })),
     };
 
-    const mockFetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    mockFetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const urlStr = url.toString();
       const headers = (init?.headers as Record<string, string>) || {};
       if (urlStr.includes('/api/vehicles')) {
@@ -303,5 +304,44 @@ describe('App & MCP Endpoints', () => {
     const textContent = JSON.parse(res.body.result.content[0].text);
     expect(textContent.count).toBe(1);
     expect(textContent.vehicles[0].model).toBe('Outback');
+  });
+
+  it('enforces rate limiting on POST /mcp', async () => {
+    const limitedApp = createApp({
+      config,
+      gateway: mockGateway,
+      fetchFn: mockFetch,
+      mcpRateLimiter: createMcpRateLimiter({ windowMs: 60000, max: 2 }),
+    });
+
+    const token = await issueBearerToken(limitedApp);
+
+    // Request 1: ok
+    const res1 = await request(limitedApp)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+    expect(res1.status).toBe(200);
+
+    // Request 2: ok
+    const res2 = await request(limitedApp)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 2 });
+    expect(res2.status).toBe(200);
+
+    // Request 3: rate limited
+    const res3 = await request(limitedApp)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 3 });
+    expect(res3.status).toBe(429);
+    expect(res3.headers['ratelimit-limit']).toBeDefined();
   });
 });
