@@ -243,10 +243,6 @@ export function createApp(options: CreateAppOptions): Express {
     metadataHandler(protectedResourceMetadata),
   );
   app.use(
-    '/.well-known/oauth-protected-resource',
-    metadataHandler(protectedResourceMetadata),
-  );
-  app.use(
     '/.well-known/oauth-authorization-server',
     metadataHandler(oauthMetadata),
   );
@@ -417,18 +413,8 @@ export function createApp(options: CreateAppOptions): Express {
     await transport.handleRequest(req, res, req.body);
   });
 
-  app.get('/mcp', (_req, res) => {
-    res.status(405).json({
-      jsonrpc: '2.0',
-      error: {
-        code: -32000,
-        message: 'Method not allowed.',
-      },
-      id: null,
-    });
-  });
-
-  app.delete('/mcp', (_req, res) => {
+  app.all('/mcp', (_req, res) => {
+    res.setHeader('Allow', 'POST');
     res.status(405).json({
       jsonrpc: '2.0',
       error: {

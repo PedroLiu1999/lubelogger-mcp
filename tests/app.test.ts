@@ -202,18 +202,29 @@ describe('App & MCP Endpoints', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns 405 on GET and DELETE /mcp', async () => {
-    const getRes = await request(app)
-      .get('/mcp')
-      .set('Host', 'mcp.example.com');
-    expect(getRes.status).toBe(405);
-    expect(getRes.body.error.code).toBe(-32000);
+  it('returns 405 with Allow: POST on any non-POST method to /mcp', async () => {
+    for (const method of ['get', 'delete', 'put', 'patch'] as const) {
+      const res = await request(app)[method]('/mcp')
+        .set('Host', 'mcp.example.com');
+      expect(res.status).toBe(405);
+      expect(res.headers['allow']).toBe('POST');
+      expect(res.body.jsonrpc).toBe('2.0');
+      expect(res.body.error.code).toBe(-32000);
+      expect(res.body.error.message).toBe('Method not allowed.');
+    }
+  });
 
-    const deleteRes = await request(app)
-      .delete('/mcp')
+  it('serves canonical protected resource metadata at /mcp and unmounts root metadata', async () => {
+    const canonicalRes = await request(app)
+      .get('/.well-known/oauth-protected-resource/mcp')
       .set('Host', 'mcp.example.com');
-    expect(deleteRes.status).toBe(405);
-    expect(deleteRes.body.error.code).toBe(-32000);
+    expect(canonicalRes.status).toBe(200);
+    expect(canonicalRes.body.resource).toBe('https://mcp.example.com/mcp');
+
+    const rootRes = await request(app)
+      .get('/.well-known/oauth-protected-resource')
+      .set('Host', 'mcp.example.com');
+    expect(rootRes.status).toBe(404);
   });
 
   it('processes MCP initialize and tools/list requests with valid bearer token', async () => {
