@@ -194,6 +194,49 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(store.getClient('client-2')).toBeUndefined();
   });
 
+  it('registers 21 clients through top-level HTTP POST /register without hitting capacity rejection', async () => {
+    const bypassApp = createApp({
+      config,
+      gateway: mockGateway,
+      fetchFn: mockFetch as any,
+      registerRateLimiter: (_req, _res, next) => next(),
+    });
+
+    const registeredClientIds: string[] = [];
+
+    for (let i = 1; i <= 21; i++) {
+      const res = await request(bypassApp)
+        .post('/register')
+        .set('Host', 'mcp.example.com')
+        .send({
+          client_name: `Client-${i}`,
+          redirect_uris: [`http://localhost:5000/callback-${i}`],
+          token_endpoint_auth_method: 'none',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.client_id).toBeDefined();
+      registeredClientIds.push(res.body.client_id);
+    }
+
+    expect(registeredClientIds.length).toBe(21);
+    const lastClientId = registeredClientIds[20];
+
+    // Verify 21st client can access /authorize
+    const authRes = await request(bypassApp)
+      .get('/authorize')
+      .set('Host', 'mcp.example.com')
+      .query({
+        response_type: 'code',
+        client_id: lastClientId,
+        redirect_uri: 'http://localhost:5000/callback-21',
+        code_challenge: 'challenge123',
+        code_challenge_method: 'S256',
+      });
+    expect(authRes.status).toBe(200);
+    expect(authRes.text).toContain(lastClientId);
+  });
+
   it('registers Google OpenAuth client even if disk persistence encounters errors', async () => {
     const readOnlyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lubelogger-ro-test-'));
     fs.chmodSync(readOnlyDir, 0o555);

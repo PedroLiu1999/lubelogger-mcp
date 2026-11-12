@@ -312,31 +312,21 @@ describe('App & MCP Endpoints', () => {
 
     const token = await issueBearerToken(limitedApp);
 
-    // Request 1: ok
-    const res1 = await request(limitedApp)
-      .post('/mcp')
-      .set('Host', 'mcp.example.com')
-      .set('Authorization', `Bearer ${token}`)
-      .set('Accept', 'application/json, text/event-stream')
-      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+    const sendMcpRequest = (id: number) =>
+      request(limitedApp)
+        .post('/mcp')
+        .set('Host', 'mcp.example.com')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json, text/event-stream')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id });
+
+    const res1 = await sendMcpRequest(1);
     expect(res1.status).toBe(200);
 
-    // Request 2: ok
-    const res2 = await request(limitedApp)
-      .post('/mcp')
-      .set('Host', 'mcp.example.com')
-      .set('Authorization', `Bearer ${token}`)
-      .set('Accept', 'application/json, text/event-stream')
-      .send({ jsonrpc: '2.0', method: 'tools/list', id: 2 });
+    const res2 = await sendMcpRequest(2);
     expect(res2.status).toBe(200);
 
-    // Request 3: rate limited
-    const res3 = await request(limitedApp)
-      .post('/mcp')
-      .set('Host', 'mcp.example.com')
-      .set('Authorization', `Bearer ${token}`)
-      .set('Accept', 'application/json, text/event-stream')
-      .send({ jsonrpc: '2.0', method: 'tools/list', id: 3 });
+    const res3 = await sendMcpRequest(3);
     expect(res3.status).toBe(429);
     expect(res3.headers['ratelimit-limit']).toBeDefined();
   });

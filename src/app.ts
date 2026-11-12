@@ -38,6 +38,7 @@ export interface CreateAppOptions {
   gatewayRegistry?: GatewayRegistry;
   fetchFn?: typeof fetch;
   mcpRateLimiter?: express.RequestHandler;
+  registerRateLimiter?: express.RequestHandler;
 }
 
 export function createTokenRateLimiter() {
@@ -213,12 +214,14 @@ export function createApp(options: CreateAppOptions): Express {
 
   app.post('/authorize', authorizePostLimiter);
 
-  const registerPostLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  const registerPostLimiter =
+    options.registerRateLimiter ??
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 5,
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
 
   app.post('/register', registerPostLimiter);
 
