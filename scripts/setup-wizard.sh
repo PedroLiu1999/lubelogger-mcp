@@ -104,7 +104,7 @@ printf '\n%s%s  🚗 lubelogger-mcp Setup Wizard%s\n' "$BOLD" "$BLUE" "$RESET"
 printf '%s  Configure, test, and deploy your LubeLogger MCP Server%s\n\n' "$DIM" "$RESET"
 printf '%s  This wizard will guide you through:%s\n' "$DIM" "$RESET"
 say "1. Public URL & port configuration"
-say "2. Embedded OAuth 2.1 admin passphrase setup"
+say "2. Embedded OAuth 2.1 zero-password authentication setup"
 say "3. LubeLogger connection & authentication verification"
 say "4. Docker Compose deployment"
 say "5. AI client connection instructions (Claude, Cursor, Gemini)"
@@ -136,7 +136,9 @@ set_env "DATA_DIR" "/data"
 # ------------------------------------------------------------------------------
 stage "OAuth 2.1 Configuration"
 
-say "Users authenticate dynamically using their real LubeLogger login (account username/password or API key)."
+say "Users authenticate dynamically via the branded LubeLogger consent screen."
+note "Zero-Password Architecture: Users paste their LubeLogger API Key (Settings ➔ Profile ➔ API Keys)."
+note "Your master account password is never collected or stored in .env or on disk."
 printf '\n'
 
 DEFAULT_REDIRECTS="http://localhost,http://127.0.0.1,https://oauth-redirect.googleusercontent.com/r/,https://oauth-redirect.googleusercontent.com/a/,https://oauth-redirect-sandbox.googleusercontent.com/r/,https://oauth-redirect-sandbox.googleusercontent.com/a/,https://oauth-redirect-test.googleusercontent.com/r/,https://oauth-redirect-test.googleusercontent.com/a/,https://vertexaisearch.cloud.google.com/oauth-redirect"
@@ -241,7 +243,7 @@ printf '%s\n' "$RESET"
 
 say "• For Cursor / Google Gemini:"
 say "  Add Custom MCP server with Server URL: ${PUBLIC_URL}/mcp"
-say "  When prompted, approve access with your admin passphrase."
+say "  When prompted in your browser, paste your LubeLogger API Key to authorize."
 printf '\n'
 say "Setup complete! Enjoy managing your garage with AI."
 printf '\n'
