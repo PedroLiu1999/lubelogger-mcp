@@ -390,12 +390,8 @@ export function createApp(options: CreateAppOptions): Express {
     const readiness = gatewayRegistry.getReadiness();
     res.status(200).json({
       status: 'ok',
-      lubeLogger: {
-        ready: readiness.ready,
-        lastCheckedAt: readiness.lastCheckedAt,
-        serverUrl: readiness.serverUrl,
-        serverVersion: readiness.serverVersion,
-      },
+      ready: readiness.ready,
+      lastCheckedAt: readiness.lastCheckedAt,
     });
   });
 

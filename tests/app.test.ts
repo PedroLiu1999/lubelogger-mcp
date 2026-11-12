@@ -140,15 +140,17 @@ describe('App & MCP Endpoints', () => {
     expect(res.status).toBe(403);
   });
 
-  it('serves /healthz with server readiness details', async () => {
+  it('serves sanitized /healthz without exposing internal URLs or versions', async () => {
     const res = await request(app)
       .get('/healthz')
       .set('Host', 'mcp.example.com');
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.lubeLogger.ready).toBe(true);
-    expect(res.body.lubeLogger.serverVersion).toBe('1.4.6');
+    expect(res.body.ready).toBe(true);
+    expect(res.body.serverUrl).toBeUndefined();
+    expect(res.body.serverVersion).toBeUndefined();
+    expect(res.body.lubeLogger).toBeUndefined();
   });
 
   it('serves brand assets', async () => {
