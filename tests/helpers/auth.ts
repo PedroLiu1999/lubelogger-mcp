@@ -6,8 +6,6 @@ export interface IssueBearerTokenOptions {
   clientId?: string;
   redirectUri?: string;
   apiKey?: string;
-  username?: string;
-  password?: string;
 }
 
 export async function issueBearerToken(
@@ -27,16 +25,8 @@ export async function issueBearerToken(
     redirect_uri: redirectUri,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
+    api_key: apiKey,
   };
-
-  if (options.username && options.password) {
-    authBody.auth_mode = 'account';
-    authBody.username = options.username;
-    authBody.password = options.password;
-  } else {
-    authBody.auth_mode = 'api';
-    authBody.api_key = apiKey;
-  }
 
   const authRes = await request(app)
     .post('/authorize')

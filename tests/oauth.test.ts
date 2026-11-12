@@ -189,13 +189,12 @@ describe('Embedded OAuth 2.1 Server', () => {
         redirect_uri: redirectUri,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
-        username: 'wronguser',
-        password: 'wrong-password',
+        api_key: 'wrong-key',
       });
     expect(wrongPassRes.status).toBe(401);
     expect(wrongPassRes.text).toContain('Invalid credentials');
 
-    // 3. Approve with correct LubeLogger user credentials
+    // 3. Approve with correct LubeLogger user API Key
     const approveRes = await request(app)
       .post('/authorize')
       .set('Host', 'mcp.example.com')
@@ -207,8 +206,7 @@ describe('Embedded OAuth 2.1 Server', () => {
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         state: 'xyz123',
-        username: 'validuser',
-        password: 'validpass',
+        api_key: 'valid-user-api-key',
       });
     expect(approveRes.status).toBe(302);
     const location = new URL(approveRes.headers.location);
@@ -264,7 +262,7 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(revokeRes.status).toBe(200);
   });
 
-  it('authenticates dynamically using LubeLogger username and password', async () => {
+  it('authenticates dynamically using LubeLogger API key', async () => {
     const clientId = 'dyn-client-1';
     const redirectUri = 'http://localhost:54321/callback';
     const codeVerifier = 'valid-pkce-verifier-string-with-at-least-43-characters-12345';
@@ -281,8 +279,7 @@ describe('Embedded OAuth 2.1 Server', () => {
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         state: 'user-auth-state',
-        username: 'validuser',
-        password: 'validpass',
+        api_key: 'valid-user-api-key',
       });
 
     expect(approveRes.status).toBe(302);
@@ -394,8 +391,7 @@ describe('Embedded OAuth 2.1 Server', () => {
         redirect_uri: 'http://localhost:54321/callback',
         code_challenge: 'challenge123',
         code_challenge_method: 'S256',
-        username: 'wronguser',
-        password: 'wrongpassword',
+        api_key: 'wrongkey',
       });
 
     expect(rejectRes.status).toBe(401);
@@ -419,8 +415,7 @@ describe('Embedded OAuth 2.1 Server', () => {
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         state: 'api-state',
-        username: 'validuser',
-        password: 'validpass',
+        api_key: 'valid-user-api-key',
       });
 
     const location = new URL(approveRes.headers.location);
@@ -442,8 +437,8 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(fs.existsSync(tokensFilePath)).toBe(true);
 
     const fileContent = fs.readFileSync(tokensFilePath, 'utf8');
-    // Ensure plaintext password is NOT in the JSON file
-    expect(fileContent).not.toContain('validpass');
+    // Ensure plaintext key is NOT in the JSON file
+    expect(fileContent).not.toContain('valid-user-api-key');
     // Ensure encrypted payload is present
     expect(fileContent).toContain('encryptedCredentials');
     expect(fileContent).toContain('tag');
@@ -470,15 +465,15 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(consentRes.text).toContain('Authorize LubeLogger MCP');
     // Verifies LubeLogger MCP logo is present
     expect(consentRes.text).toContain('/logo-dark.svg');
-    // Verifies API Key tab is active by default
-    expect(consentRes.text).toMatch(/id="tab-api"[^>]*class="[^"]*active[^"]*"/);
-    // Verifies hidden auth_mode is set to api
-    expect(consentRes.text).toContain('name="auth_mode" id="auth_mode" value="api"');
     // Verifies zero-password security guidance and deeplink are present
     expect(consentRes.text).toContain('Zero-Password Security');
     expect(consentRes.text).toContain('Settings ➔ Profile ➔ API Keys');
     expect(consentRes.text).toContain('href="http://localhost:8383"');
     expect(consentRes.text).toContain('Editor or Manager permissions');
+    // Verifies username/password fields and tab navigation are NOT present
+    expect(consentRes.text).not.toContain('name="username"');
+    expect(consentRes.text).not.toContain('name="password"');
+    expect(consentRes.text).not.toContain('id="tab-account"');
   });
 
   it('serves dark mode LubeLogger MCP brand logo', async () => {

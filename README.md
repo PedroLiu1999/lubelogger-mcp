@@ -124,8 +124,6 @@ curl http://127.0.0.1:3000/healthz
 | `OAUTH_ALLOWED_REDIRECT_URIS` | Comma-separated list of allowed OAuth redirect URI prefixes. | *Localhost & Gemini* |
 | `LUBELOGGER_URL` | Base URL of self-hosted LubeLogger instance. | `http://host.docker.internal:8383` |
 | `LUBELOGGER_API_KEY` | Optional server-wide default API Key. (Omit to use pure dynamic per-user auth). | *Optional* |
-| `LUBELOGGER_USERNAME` | Username for optional server-wide Basic Auth fallback. | *Optional* |
-| `LUBELOGGER_PASSWORD` | Password for optional server-wide Basic Auth fallback. | *Optional* |
 | `CACHE_TTL_SECONDS` | In-memory vehicle cache TTL in seconds. | `30` |
 
 ---

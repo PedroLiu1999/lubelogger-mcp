@@ -428,8 +428,7 @@ printf '\n'
 say "Authentication Mode:"
 say "  1) Dynamic Authentication (Recommended: users approve via browser with their LubeLogger API Key on /authorize; zero secrets stored in .env)"
 say "  2) Server-wide API Key (shared key stored in .env)"
-say "  3) Server-wide Basic Authentication (shared username & password stored in .env)"
-ask AUTH_CHOICE "Select mode [1, 2, or 3]:" "1"
+ask AUTH_CHOICE "Select mode [1 or 2]:" "1"
 
 if [[ "$AUTH_CHOICE" == "2" ]]; then
   ask LUBELOGGER_API_KEY "LubeLogger API Key:"
@@ -438,15 +437,6 @@ if [[ "$AUTH_CHOICE" == "2" ]]; then
     ask LUBELOGGER_API_KEY "LubeLogger API Key:"
   done
   write_env LUBELOGGER_API_KEY "$LUBELOGGER_API_KEY"
-elif [[ "$AUTH_CHOICE" == "3" ]]; then
-  ask LUBELOGGER_USERNAME "LubeLogger Username:" "admin"
-  ask_secret LUBELOGGER_PASSWORD "LubeLogger Password:"
-  while [[ -z "$LUBELOGGER_PASSWORD" ]]; do
-    warn "Password cannot be empty in Basic Auth mode."
-    ask_secret LUBELOGGER_PASSWORD "LubeLogger Password:"
-  done
-  write_env LUBELOGGER_USERNAME "$LUBELOGGER_USERNAME"
-  write_env LUBELOGGER_PASSWORD "$LUBELOGGER_PASSWORD"
 else
   note "Using dynamic authentication: zero secrets stored in .env."
 fi

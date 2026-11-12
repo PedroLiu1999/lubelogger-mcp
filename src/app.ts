@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { metadataHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/metadata.js';
@@ -143,9 +144,26 @@ export function createApp(options: CreateAppOptions): Express {
     logo_uri: logoUrl,
   };
 
-  // Serve brand assets inline or from data URI
-  const svgLogo = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0284c7"/><stop offset="100%" stop-color="#0369a1"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#g)"/><path d="M64 24 C54 38 42 56 42 70 C42 82.15 51.85 92 64 92 C76.15 92 86 82.15 86 70 C86 56 74 38 64 24 Z" fill="#ffffff" fill-opacity="0.95"/><path d="M54 74 C54 68 59 62 65 60 C65 62 62 66 62 70 C62 74 65 76 65 76 C60 76 54 74 54 74 Z" fill="#0284c7"/><circle cx="64" cy="106" r="4" fill="#ffffff" fill-opacity="0.8"/></svg>`,
+  // Serve official repository brand assets (docs/logo.svg, docs/logo-dark.svg, docs/logo-symbol.svg)
+  const docsDir = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../docs',
+  );
+
+  const readBrandAsset = (filename: string, fallback: Buffer): Buffer => {
+    try {
+      const filePath = path.join(docsDir, filename);
+      if (fs.existsSync(filePath)) {
+        return fs.readFileSync(filePath);
+      }
+    } catch {
+      // Ignore disk error; use fallback
+    }
+    return fallback;
+  };
+
+  const svgLogoLight = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 256" width="760" height="256" role="img" aria-labelledby="title-lockup-light"><title id="title-lockup-light">LubeLogger MCP Logo</title><g fill-rule="evenodd" transform="translate(10, 0)"><path fill="#1E293B" d="M 128 16 A 112 112 0 1 0 128.01 16 Z M 128 40 A 88 88 0 1 1 127.99 40 Z"/><path fill="#1E293B" d="M 40 120 H 92 V 136 H 40 Z"/><path fill="#1E293B" d="M 164 120 H 216 V 136 H 164 Z"/><path fill="#1E293B" d="M 120 178 H 136 V 216 H 120 Z"/><path fill="#F59E0B" fill-rule="evenodd" d="M 128 46 C 128 46 172 104 172 138 A 44 44 0 0 1 84 138 C 84 104 128 46 128 46 Z M 128 110 C 133 127 141 133 154 138 C 141 143 133 149 128 166 C 123 149 115 143 102 138 C 115 133 123 127 128 110 Z"/></g><text x="270" y="146" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#1E293B" letter-spacing="-1.5">lubelogger</text><g transform="translate(615, 96)"><rect width="105" height="54" rx="14" fill="#1E293B"/><text x="52" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace" font-size="28" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="1.5">MCP</text><path fill="#F59E0B" d="M 96 -6 C 98 0 100 2 106 4 C 100 6 98 8 96 14 C 94 8 92 6 86 4 C 92 2 94 0 96 -6 Z"/></g></svg>`,
     'utf8',
   );
 
@@ -154,24 +172,71 @@ export function createApp(options: CreateAppOptions): Express {
     'utf8',
   );
 
+  const svgLogoSymbol = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title-neural-wheel"><title id="title-neural-wheel">LubeLogger MCP - Neural Wheel Mark</title><g id="symbol" fill-rule="evenodd"><path fill="#1E293B" d="M 128 16 A 112 112 0 1 0 128.01 16 Z M 128 40 A 88 88 0 1 1 127.99 40 Z"/><path fill="#1E293B" d="M 40 120 H 92 V 136 H 40 Z"/><path fill="#1E293B" d="M 164 120 H 216 V 136 H 164 Z"/><path fill="#1E293B" d="M 120 178 H 136 V 216 H 120 Z"/><path fill="#F59E0B" d="M 128 46 C 128 46 172 104 172 138 A 44 44 0 0 1 84 138 C 84 104 128 46 128 46 Z M 128 110 C 133 127 141 133 154 138 C 141 143 133 149 128 166 C 123 149 115 143 102 138 C 115 133 123 127 128 110 Z"/></g></svg>`,
+    'utf8',
+  );
+
   app.get('/logo.svg', (_req, res) => {
-    res.type('image/svg+xml; charset=utf-8').send(svgLogo);
+    res.type('image/svg+xml; charset=utf-8').send(readBrandAsset('logo.svg', svgLogoLight));
   });
 
   app.get('/logo-dark.svg', (_req, res) => {
-    res.type('image/svg+xml; charset=utf-8').send(svgLogoDark);
+    res.type('image/svg+xml; charset=utf-8').send(readBrandAsset('logo-dark.svg', svgLogoDark));
+  });
+
+  app.get('/logo-symbol.svg', (_req, res) => {
+    res.type('image/svg+xml; charset=utf-8').send(readBrandAsset('logo-symbol.svg', svgLogoSymbol));
   });
 
   app.get('/logo.png', (_req, res) => {
-    res.type('image/svg+xml; charset=utf-8').send(svgLogo);
+    const pngBuffer = readBrandAsset('logo.png', svgLogoLight);
+    const contentType =
+      pngBuffer.length >= 8 &&
+      pngBuffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+        ? 'image/png'
+        : 'image/svg+xml; charset=utf-8';
+    res.type(contentType).send(pngBuffer);
+  });
+
+  app.get('/logo-dark.png', (_req, res) => {
+    const pngBuffer = readBrandAsset('logo-dark.png', svgLogoDark);
+    const contentType =
+      pngBuffer.length >= 8 &&
+      pngBuffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+        ? 'image/png'
+        : 'image/svg+xml; charset=utf-8';
+    res.type(contentType).send(pngBuffer);
+  });
+
+  app.get('/logo-symbol.png', (_req, res) => {
+    const pngBuffer = readBrandAsset('logo-symbol.png', svgLogoSymbol);
+    const contentType =
+      pngBuffer.length >= 8 &&
+      pngBuffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+        ? 'image/png'
+        : 'image/svg+xml; charset=utf-8';
+    res.type(contentType).send(pngBuffer);
   });
 
   app.get('/favicon.ico', (_req, res) => {
-    res.type('image/svg+xml; charset=utf-8').send(svgLogo);
+    const pngBuffer = readBrandAsset('logo-symbol.png', svgLogoSymbol);
+    const contentType =
+      pngBuffer.length >= 8 &&
+      pngBuffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+        ? 'image/png'
+        : 'image/svg+xml; charset=utf-8';
+    res.type(contentType).send(pngBuffer);
   });
 
   app.get('/apple-touch-icon.png', (_req, res) => {
-    res.type('image/svg+xml; charset=utf-8').send(svgLogo);
+    const pngBuffer = readBrandAsset('logo-symbol.png', svgLogoSymbol);
+    const contentType =
+      pngBuffer.length >= 8 &&
+      pngBuffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+        ? 'image/png'
+        : 'image/svg+xml; charset=utf-8';
+    res.type(contentType).send(pngBuffer);
   });
 
   app.use(

@@ -157,6 +157,29 @@ describe('App & MCP Endpoints', () => {
       .set('Host', 'mcp.example.com');
     expect(logoRes.status).toBe(200);
     expect(logoRes.headers['content-type']).toContain('image/svg+xml');
+    const logoText = logoRes.text || logoRes.body.toString('utf8');
+    expect(logoText).toContain('LubeLogger MCP Logo');
+
+    const logoDarkRes = await request(app)
+      .get('/logo-dark.svg')
+      .set('Host', 'mcp.example.com');
+    expect(logoDarkRes.status).toBe(200);
+    expect(logoDarkRes.headers['content-type']).toContain('image/svg+xml');
+    const logoDarkText = logoDarkRes.text || logoDarkRes.body.toString('utf8');
+    expect(logoDarkText).toContain('LubeLogger MCP Logo (Dark Mode)');
+
+    const symbolRes = await request(app)
+      .get('/logo-symbol.svg')
+      .set('Host', 'mcp.example.com');
+    expect(symbolRes.status).toBe(200);
+    expect(symbolRes.headers['content-type']).toContain('image/svg+xml');
+    const symbolText = symbolRes.text || symbolRes.body.toString('utf8');
+    expect(symbolText).toContain('LubeLogger MCP - Neural Wheel Mark');
+
+    const logoPngRes = await request(app)
+      .get('/logo.png')
+      .set('Host', 'mcp.example.com');
+    expect(logoPngRes.status).toBe(200);
 
     const favRes = await request(app)
       .get('/favicon.ico')

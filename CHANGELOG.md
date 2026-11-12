@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-11-12
+
+### Changed
+- **Pure API Key Authentication**: Completely removed the option to authenticate with username and password. Authorization is now 100% API-Key-first (`x-api-key`) with zero passwords collected, transmitted, or stored.
+- **Simplified Consent Screen**: Removed the account/password tab panel, navigation toggles, and scripts on `/authorize`. The consent screen now focuses exclusively on the LubeLogger API Key input with direct settings deeplink and zero-password security badge.
+- **Streamlined Setup Wizard**: Removed the Basic Auth (username/password) prompt from `scripts/setup-wizard.sh`.
+- **Official Repository Brand Logo**: Replaced the legacy teardrop icon with the official LubeLogger MCP neural wheel lockup and symbol across all server endpoints (`/logo.svg`, `/logo-dark.svg`, `/logo-symbol.svg`, `/logo.png`, `/favicon.ico`, `/apple-touch-icon.png`) and MCP server declaration (`icons`). Copied `docs/` brand assets into runtime Docker image.
+
 ## [1.1.1] - 2026-11-12
 
 ### Fixed

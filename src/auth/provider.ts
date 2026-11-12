@@ -214,14 +214,7 @@ export function renderConsentHtml(options: {
 
     ${errorBanner}
 
-    <!-- Tab navigation -->
-    <div style="display: flex; gap: 0.375rem; background: rgba(15, 23, 42, 0.4); padding: 0.25rem; border-radius: 0.5rem; margin-bottom: 1.25rem; border: 1px solid #334155;">
-      <button type="button" id="tab-api" class="tab-btn active" onclick="switchTab('api')">API Key (Recommended)</button>
-      <button type="button" id="tab-account" class="tab-btn" onclick="switchTab('account')">Account</button>
-    </div>
-
     <form method="POST" action="/authorize">
-      <input type="hidden" name="auth_mode" id="auth_mode" value="api" />
       <input type="hidden" name="response_type" value="code" />
       <input type="hidden" name="client_id" value="${escapeHtml(options.clientId)}" />
       <input type="hidden" name="redirect_uri" value="${escapeHtml(options.redirectUri)}" />
@@ -231,63 +224,21 @@ export function renderConsentHtml(options: {
       ${options.scopes && options.scopes.length > 0 ? `<input type="hidden" name="scope" value="${escapeHtml(options.scopes.join(' '))}" />` : ''}
       ${options.resource !== undefined ? `<input type="hidden" name="resource" value="${escapeHtml(options.resource)}" />` : ''}
 
-      <!-- API Key Panel (Default) -->
-      <div id="panel-api">
-        <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8125rem; color: #94A3B8; line-height: 1.4;">
-          <div style="display: flex; align-items: center; gap: 0.375rem; color: #38BDF8; font-weight: 600; margin-bottom: 0.25rem;">
-            <span>🛡️ Zero-Password Security</span>
-          </div>
-          <div>Your account password is never collected or stored. In LubeLogger, go to ${options.lubeLoggerUrl ? `<a href="${escapeHtml(options.lubeLoggerUrl)}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: underline;"><strong>Settings ➔ Profile ➔ API Keys</strong></a>` : `<strong>Settings ➔ Profile ➔ API Keys</strong>`} and click <strong>Generate</strong> with Editor or Manager permissions.</div>
+      <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.8125rem; color: #94A3B8; line-height: 1.4;">
+        <div style="display: flex; align-items: center; gap: 0.375rem; color: #38BDF8; font-weight: 600; margin-bottom: 0.25rem;">
+          <span>🛡️ Zero-Password Security</span>
         </div>
-
-        <div style="margin-bottom: 1.25rem;">
-          <label for="api_key" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">LubeLogger API Key</label>
-          <input id="api_key" type="password" name="api_key" class="input-field" placeholder="Enter API Key (x-api-key)" autocomplete="off" />
-        </div>
+        <div>Your account password is never collected or stored. In LubeLogger, go to ${options.lubeLoggerUrl ? `<a href="${escapeHtml(options.lubeLoggerUrl)}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: underline;"><strong>Settings ➔ Profile ➔ API Keys</strong></a>` : `<strong>Settings ➔ Profile ➔ API Keys</strong>`} and click <strong>Generate</strong> with Editor or Manager permissions.</div>
       </div>
 
-      <!-- Account Panel -->
-      <div id="panel-account" style="display: none;">
-        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 0.5rem; padding: 0.625rem 0.75rem; margin-bottom: 1rem; font-size: 0.75rem; color: #FBBF24; line-height: 1.4;">
-          ⚠️ <strong>Security Notice:</strong> Using your account password requires two-way encrypted storage. We strongly recommend using the <strong>API Key</strong> tab instead.
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <label for="username" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">LubeLogger Username</label>
-          <input id="username" type="text" name="username" class="input-field" placeholder="Username" autocomplete="username" />
-        </div>
-        <div style="margin-bottom: 1.25rem;">
-          <label for="password" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">Password</label>
-          <input id="password" type="password" name="password" class="input-field" placeholder="Account password" autocomplete="current-password" />
-        </div>
+      <div style="margin-bottom: 1.25rem;">
+        <label for="api_key" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">LubeLogger API Key</label>
+        <input id="api_key" type="password" name="api_key" class="input-field" placeholder="Enter API Key (x-api-key)" autocomplete="off" autofocus required />
       </div>
 
-      <button type="submit" class="submit-btn">Sign in &amp; Authorize</button>
+      <button type="submit" class="submit-btn">Authorize Access</button>
     </form>
   </div>
-
-  <script>
-    function switchTab(mode) {
-      const tabAccount = document.getElementById('tab-account');
-      const tabApi = document.getElementById('tab-api');
-      const panelAccount = document.getElementById('panel-account');
-      const panelApi = document.getElementById('panel-api');
-      if (mode === 'api') {
-        tabApi.classList.add('active');
-        tabAccount.classList.remove('active');
-        panelApi.style.display = 'block';
-        panelAccount.style.display = 'none';
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-      } else {
-        tabAccount.classList.add('active');
-        tabApi.classList.remove('active');
-        panelAccount.style.display = 'block';
-        panelApi.style.display = 'none';
-        document.getElementById('api_key').value = '';
-      }
-      document.getElementById('auth_mode').value = mode;
-    }
-  </script>
 </body>
 </html>`;
 }
@@ -437,8 +388,6 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
   ): Promise<void> {
     const req = res.req;
     if (req && req.method === 'POST') {
-      const authMode = typeof req.body?.auth_mode === 'string' ? req.body.auth_mode : undefined;
-
       const submittedApiKey =
         typeof req.body?.api_key === 'string' && req.body.api_key.trim() !== ''
           ? req.body.api_key.trim()
@@ -446,54 +395,23 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
             ? req.body.apiKey.trim()
             : undefined;
 
-      const submittedUsername =
-        typeof req.body?.username === 'string' && req.body.username.trim() !== ''
-          ? req.body.username.trim()
-          : undefined;
-
-      const submittedPassword =
-        typeof req.body?.password === 'string' && req.body.password !== ''
-          ? req.body.password
-          : undefined;
-
       let verifiedUserCredentials: UserCredentials | undefined;
       let authPassed = false;
-      let failureReason = 'Invalid credentials. Please provide valid LubeLogger login details.';
+      let failureReason = 'Please enter your LubeLogger API key.';
 
-      // Case 1: API Key tab or api_key submitted (default)
-      if (authMode === 'api' || (!authMode && submittedApiKey) || (!authMode && !submittedUsername)) {
-        if (!submittedApiKey) {
-          failureReason = 'Please enter your LubeLogger API key.';
+      if (!submittedApiKey) {
+        failureReason = 'Please enter your LubeLogger API key.';
+      } else {
+        const verifyResult = await verifyLubeLoggerCredentials(
+          this.config.LUBELOGGER_URL,
+          { apiKey: submittedApiKey },
+          this.fetchFn,
+        );
+        if (verifyResult.valid) {
+          authPassed = true;
+          verifiedUserCredentials = { apiKey: submittedApiKey };
         } else {
-          const verifyResult = await verifyLubeLoggerCredentials(
-            this.config.LUBELOGGER_URL,
-            { apiKey: submittedApiKey },
-            this.fetchFn,
-          );
-          if (verifyResult.valid) {
-            authPassed = true;
-            verifiedUserCredentials = { apiKey: submittedApiKey };
-          } else {
-            failureReason = verifyResult.error || 'Invalid LubeLogger API key.';
-          }
-        }
-      }
-      // Case 2: Username & Password tab
-      else {
-        if (!submittedUsername || !submittedPassword) {
-          failureReason = 'Please enter both your LubeLogger username and password.';
-        } else {
-          const verifyResult = await verifyLubeLoggerCredentials(
-            this.config.LUBELOGGER_URL,
-            { username: submittedUsername, password: submittedPassword },
-            this.fetchFn,
-          );
-          if (verifyResult.valid) {
-            authPassed = true;
-            verifiedUserCredentials = { username: submittedUsername, password: submittedPassword };
-          } else {
-            failureReason = verifyResult.error || 'Invalid LubeLogger username or password.';
-          }
+          failureReason = verifyResult.error || 'Invalid LubeLogger API key.';
         }
       }
 
