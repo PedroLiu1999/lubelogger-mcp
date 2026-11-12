@@ -18,7 +18,7 @@ else
   BOLD=""; DIM=""; RESET=""; BLUE=""; GREEN=""; YELLOW=""; RED=""
 fi
 
-TOTAL_STAGES=6
+TOTAL_STAGES=5
 _STAGE_INDEX=0
 ENV_FILE="${ENV_FILE:-.env}"
 
@@ -104,8 +104,8 @@ printf '\n%s%s  🚗 lubelogger-mcp Setup Wizard%s\n' "$BOLD" "$BLUE" "$RESET"
 printf '%s  Configure, test, and deploy your LubeLogger MCP Server%s\n\n' "$DIM" "$RESET"
 printf '%s  This wizard will guide you through:%s\n' "$DIM" "$RESET"
 say "1. Public URL & port configuration"
-say "2. Embedded OAuth 2.1 zero-password authentication setup"
-say "3. LubeLogger connection & authentication verification"
+say "2. LubeLogger connection & authentication verification"
+say "3. Connectivity testing"
 say "4. Docker Compose deployment"
 say "5. AI client connection instructions (Claude, Cursor, Gemini)"
 printf '\n'
@@ -131,21 +131,11 @@ set_env "PUBLIC_URL" "$PUBLIC_URL"
 set_env "PORT" "$PORT"
 set_env "DATA_DIR" "/data"
 
-# ------------------------------------------------------------------------------
-# Stage 2: Embedded OAuth 2.1
-# ------------------------------------------------------------------------------
-stage "OAuth 2.1 Configuration"
-
-say "Users authenticate dynamically via the branded LubeLogger consent screen."
-note "Zero-Password Architecture: Users paste their LubeLogger API Key (Settings ➔ Profile ➔ API Keys)."
-note "Your master account password is never collected or stored in .env or on disk."
-printf '\n'
-
 DEFAULT_REDIRECTS="http://localhost,http://127.0.0.1,https://oauth-redirect.googleusercontent.com/r/,https://oauth-redirect.googleusercontent.com/a/,https://oauth-redirect-sandbox.googleusercontent.com/r/,https://oauth-redirect-sandbox.googleusercontent.com/a/,https://oauth-redirect-test.googleusercontent.com/r/,https://oauth-redirect-test.googleusercontent.com/a/,https://vertexaisearch.cloud.google.com/oauth-redirect"
 set_env "OAUTH_ALLOWED_REDIRECT_URIS" "$DEFAULT_REDIRECTS"
 
 # ------------------------------------------------------------------------------
-# Stage 3: LubeLogger Connection
+# Stage 2: LubeLogger Connection
 # ------------------------------------------------------------------------------
 stage "LubeLogger Server & Authentication"
 
@@ -184,7 +174,7 @@ fi
 set_env "CACHE_TTL_SECONDS" "30"
 
 # ------------------------------------------------------------------------------
-# Stage 4: Test Connection
+# Stage 3: Test Connection
 # ------------------------------------------------------------------------------
 stage "Connection Verification"
 
@@ -205,7 +195,7 @@ fi
 pause "Press Enter to proceed to deployment..."
 
 # ------------------------------------------------------------------------------
-# Stage 5: Deploy with Docker Compose
+# Stage 4: Deploy with Docker Compose
 # ------------------------------------------------------------------------------
 stage "Docker Deployment"
 
@@ -221,7 +211,7 @@ fi
 pause "Press Enter to view client connection details..."
 
 # ------------------------------------------------------------------------------
-# Stage 6: Client Configuration
+# Stage 5: Client Configuration
 # ------------------------------------------------------------------------------
 stage "Connecting AI Clients"
 
