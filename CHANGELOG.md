@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-12
+
+### Security & Hardening
+- **Sanitized Public Health Check**: Hardened `GET /healthz` to return a strictly sanitized `{ status: "ok", ready: boolean }` schema, redacting upstream LubeLogger server URLs (private IP/cluster DNS), backend version numbers, and internal connection error strings to prevent network topology disclosure to unauthenticated scanners.
+- **Consolidated MCP Transport Method Guards**: Replaced disparate method handlers with a consolidated `app.all('/mcp')` guard that strictly accepts `POST` requests and rejects all other HTTP methods (`GET`, `DELETE`, `PUT`, `PATCH`, `HEAD`) with HTTP 405 Method Not Allowed and an `Allow: POST` header.
+- **Attack Surface Pruning**: Pruned 6 unneeded static brand asset routes (`/logo.svg`, `/logo-symbol.svg`, `/logo.png`, `/logo-dark.png`, `/favicon.ico`, `/apple-touch-icon.png`) and removed the duplicate root metadata endpoint (`/.well-known/oauth-protected-resource`), keeping only the canonical RFC 9728 path `/.well-known/oauth-protected-resource/mcp`.
+- **Inlined Consent Screen Branding**: Embedded the official dark-mode neural wheel lockup vector directly into `renderConsentHtml`, eliminating external HTTP image asset roundtrips and avoiding CSP cross-origin blocking during OAuth authorization.
+- **MCP Transport Rate Limiting**: Added rate limiting middleware to `POST /mcp` (default: 120 requests/minute) backed by configurable environment variables `MCP_RATE_LIMIT_WINDOW_MS` and `MCP_RATE_LIMIT_MAX` to prevent transport denial-of-service and connection starvation.
+- **Dynamic Client Capacity & LRU Eviction**: Implemented least-recently-used (LRU) capacity eviction in `FileTokenStore` when `MAX_REGISTERED_CLIENTS` (20) is exceeded. Stored client registrations now track `last_seen_at` timestamps updated on client retrieval and token operations. Eviction deletes stale clients and their associated access and refresh tokens, preventing client registration exhaustion DoS while preserving active sessions across restarts with debounced asynchronous persistence.
+
 ## [1.1.3] - 2026-11-12
 
 ### Fixed

@@ -246,7 +246,7 @@ describe('App & MCP Endpoints', () => {
 
     expect(initRes.status).toBe(200);
     expect(initRes.body.result.serverInfo.name).toBe('lubelogger-mcp');
-    expect(initRes.body.result.serverInfo.version).toBe('1.1.3');
+    expect(initRes.body.result.serverInfo.version).toBe('1.2.0');
     expect(initRes.body.result.serverInfo.icons).toEqual([
       {
         src: expect.stringMatching(/^data:image\/png;base64,/),
