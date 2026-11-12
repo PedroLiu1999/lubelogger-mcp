@@ -41,10 +41,14 @@ interface SerializedStoredToken {
   userCredentials?: UserCredentials; // for legacy disk read backwards compatibility
 }
 
+export interface StoredOAuthClient extends OAuthClientInformationFull {
+  last_seen_at?: number;
+}
+
 interface SerializedTokenStoreData {
   accessTokens: SerializedStoredToken[];
   refreshTokens: SerializedStoredToken[];
-  clients?: OAuthClientInformationFull[];
+  clients?: StoredOAuthClient[];
 }
 
 export const ACCESS_TOKEN_TTL_SECONDS = 3600;
@@ -199,7 +203,7 @@ export class FileTokenStore {
   private readonly encryptionKey: Buffer;
   private readonly accessTokens = new Map<string, StoredAccessToken>();
   private readonly refreshTokens = new Map<string, StoredRefreshToken>();
-  private readonly clients = new Map<string, OAuthClientInformationFull>();
+  private readonly clients = new Map<string, StoredOAuthClient>();
 
   constructor(dataDir: string) {
     this.dataDir = dataDir;
@@ -222,7 +226,12 @@ export class FileTokenStore {
       hydrateTokens(parsed.refreshTokens, this.refreshTokens, nowSeconds, this.encryptionKey);
 
       if (Array.isArray(parsed.clients)) {
-        for (const client of parsed.clients) {
+        const sortedClients = [...parsed.clients].sort((a, b) => {
+          const aTime = a.last_seen_at ?? (a.client_id_issued_at ? a.client_id_issued_at * 1000 : 0);
+          const bTime = b.last_seen_at ?? (b.client_id_issued_at ? b.client_id_issued_at * 1000 : 0);
+          return aTime - bTime;
+        });
+        for (const client of sortedClients) {
           if (client && typeof client.client_id === 'string') {
             this.clients.set(client.client_id, client);
           }
@@ -284,15 +293,16 @@ export class FileTokenStore {
     return this.clients.size;
   }
 
-  private touchClient(clientId: string, client?: OAuthClientInformationFull): void {
+  private touchClient(clientId: string, client?: StoredOAuthClient): void {
     const target = client ?? this.clients.get(clientId);
     if (target) {
+      target.last_seen_at = Date.now();
       this.clients.delete(clientId);
       this.clients.set(clientId, target);
     }
   }
 
-  saveClient(client: OAuthClientInformationFull): void {
+  saveClient(client: StoredOAuthClient): void {
     if (!this.clients.has(client.client_id) && this.clients.size >= MAX_REGISTERED_CLIENTS) {
       const lruClientId = this.clients.keys().next().value;
       if (lruClientId) {
@@ -301,12 +311,13 @@ export class FileTokenStore {
         evictTokensForClient(this.refreshTokens, lruClientId);
       }
     }
+    client.last_seen_at = Date.now();
     this.clients.delete(client.client_id);
     this.clients.set(client.client_id, client);
     this.persistToDisk();
   }
 
-  getClient(clientId: string): OAuthClientInformationFull | undefined {
+  getClient(clientId: string): StoredOAuthClient | undefined {
     const client = this.clients.get(clientId);
     if (client) {
       this.touchClient(clientId, client);
@@ -315,6 +326,7 @@ export class FileTokenStore {
   }
 
   saveTokens(access: StoredAccessToken, refresh?: StoredRefreshToken): void {
+    this.touchClient(access.clientId);
     this.accessTokens.set(access.token, access);
     if (refresh) {
       this.refreshTokens.set(refresh.token, refresh);

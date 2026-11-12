@@ -39,7 +39,6 @@ export interface CreateAppOptions {
   gatewayRegistry?: GatewayRegistry;
   fetchFn?: typeof fetch;
   mcpRateLimiter?: express.RequestHandler;
-  registerRateLimiter?: express.RequestHandler;
 }
 
 export function createTokenRateLimiter() {
@@ -175,16 +174,16 @@ export function createApp(options: CreateAppOptions): Express {
 
   const svgLogoDark = Buffer.from(SVG_LOGO_DARK, 'utf8');
   const svgLogoSymbol = Buffer.from(SVG_LOGO_SYMBOL, 'utf8');
+  const PNG_MAGIC_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-  app.get(['/logo-dark.svg', '/logo-symbol.png'], (req, res) => {
-    if (req.path === '/logo-dark.svg') {
-      res.type('image/svg+xml; charset=utf-8').send(readBrandAsset('logo-dark.svg', svgLogoDark));
-      return;
-    }
+  app.get('/logo-dark.svg', (_req, res) => {
+    res.type('image/svg+xml; charset=utf-8').send(readBrandAsset('logo-dark.svg', svgLogoDark));
+  });
+
+  app.get('/logo-symbol.png', (_req, res) => {
     const pngBuffer = readBrandAsset('logo-symbol.png', svgLogoSymbol);
     const contentType =
-      pngBuffer.length >= 8 &&
-      pngBuffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+      pngBuffer.length >= 8 && pngBuffer.subarray(0, 8).equals(PNG_MAGIC_BYTES)
         ? 'image/png'
         : 'image/svg+xml; charset=utf-8';
     res.type(contentType).send(pngBuffer);
@@ -208,14 +207,12 @@ export function createApp(options: CreateAppOptions): Express {
 
   app.post('/authorize', authorizePostLimiter);
 
-  const registerPostLimiter =
-    options.registerRateLimiter ??
-    rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 5,
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
+  const registerPostLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
   app.post('/register', registerPostLimiter);
 

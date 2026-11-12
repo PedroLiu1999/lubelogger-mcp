@@ -10,6 +10,16 @@ import { FileTokenStore, MAX_REGISTERED_CLIENTS } from '../src/auth/tokenStore.j
 import type { AppConfig } from '../src/config.js';
 import type { LubeLoggerGateway } from '../src/gateway/types.js';
 
+function populateClients(store: FileTokenStore, count: number): void {
+  for (let i = 1; i <= count; i++) {
+    store.saveClient({
+      client_id: `client-${i}`,
+      redirect_uris: ['http://localhost/callback'],
+      token_endpoint_auth_method: 'none',
+    });
+  }
+}
+
 describe('Embedded OAuth 2.1 Server', () => {
   let tmpDataDir: string;
   let config: AppConfig;
@@ -126,14 +136,7 @@ describe('Embedded OAuth 2.1 Server', () => {
 
   it('automatically evicts least recently used dynamic clients when exceeding MAX_REGISTERED_CLIENTS', () => {
     const store = new FileTokenStore(tmpDataDir);
-
-    for (let i = 1; i <= MAX_REGISTERED_CLIENTS; i++) {
-      store.saveClient({
-        client_id: `client-${i}`,
-        redirect_uris: ['http://localhost/callback'],
-        token_endpoint_auth_method: 'none',
-      });
-    }
+    populateClients(store, MAX_REGISTERED_CLIENTS);
 
     expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
     expect(store.getClient('client-1')).toBeDefined();
@@ -157,14 +160,7 @@ describe('Embedded OAuth 2.1 Server', () => {
 
   it('preserves active clients during eviction when their access token or user credentials are used', () => {
     const store = new FileTokenStore(tmpDataDir);
-
-    for (let i = 1; i <= MAX_REGISTERED_CLIENTS; i++) {
-      store.saveClient({
-        client_id: `client-${i}`,
-        redirect_uris: ['http://localhost/callback'],
-        token_endpoint_auth_method: 'none',
-      });
-    }
+    populateClients(store, MAX_REGISTERED_CLIENTS);
 
     // Save token for client-1
     store.saveTokens({
@@ -194,47 +190,74 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(store.getClient('client-2')).toBeUndefined();
   });
 
-  it('registers 21 clients through top-level HTTP POST /register without hitting capacity rejection', async () => {
-    const bypassApp = createApp({
+  it('persists last_seen_at timestamps across store reloads and evicts least recently used', () => {
+    const store1 = new FileTokenStore(tmpDataDir);
+    populateClients(store1, MAX_REGISTERED_CLIENTS);
+
+    // Save tokens for client-1, touching recency and persisting to disk
+    store1.saveTokens({
+      token: 'token-client-1',
+      clientId: 'client-1',
+      scopes: ['mcp:tools'],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const c1 = store1.getClient('client-1');
+    expect(c1?.last_seen_at).toBeDefined();
+
+    // Re-instantiate store from disk (simulating server restart)
+    const store2 = new FileTokenStore(tmpDataDir);
+    expect(store2.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
+
+    // Register 21st client
+    store2.saveClient({
+      client_id: 'client-21',
+      redirect_uris: ['http://localhost/callback'],
+      token_endpoint_auth_method: 'none',
+    });
+
+    expect(store2.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
+    expect(store2.getClient('client-21')).toBeDefined();
+    expect(store2.getClient('client-1')).toBeDefined();
+    expect(store2.getClient('client-2')).toBeUndefined();
+  });
+
+  it('registers 21st client through top-level HTTP POST /register without hitting capacity rejection', async () => {
+    const store = new FileTokenStore(tmpDataDir);
+    populateClients(store, MAX_REGISTERED_CLIENTS);
+
+    const testApp = createApp({
       config,
       gateway: mockGateway,
       fetchFn: mockFetch as any,
-      registerRateLimiter: (_req, _res, next) => next(),
     });
 
-    const registeredClientIds: string[] = [];
+    const res = await request(testApp)
+      .post('/register')
+      .set('Host', 'mcp.example.com')
+      .send({
+        client_name: 'Client-21',
+        redirect_uris: ['http://localhost:5000/callback-21'],
+        token_endpoint_auth_method: 'none',
+      });
 
-    for (let i = 1; i <= 21; i++) {
-      const res = await request(bypassApp)
-        .post('/register')
-        .set('Host', 'mcp.example.com')
-        .send({
-          client_name: `Client-${i}`,
-          redirect_uris: [`http://localhost:5000/callback-${i}`],
-          token_endpoint_auth_method: 'none',
-        });
-
-      expect(res.status).toBe(201);
-      expect(res.body.client_id).toBeDefined();
-      registeredClientIds.push(res.body.client_id);
-    }
-
-    expect(registeredClientIds.length).toBe(21);
-    const lastClientId = registeredClientIds[20];
+    expect(res.status).toBe(201);
+    expect(res.body.client_id).toBeDefined();
+    const newClientId = res.body.client_id;
 
     // Verify 21st client can access /authorize
-    const authRes = await request(bypassApp)
+    const authRes = await request(testApp)
       .get('/authorize')
       .set('Host', 'mcp.example.com')
       .query({
         response_type: 'code',
-        client_id: lastClientId,
+        client_id: newClientId,
         redirect_uri: 'http://localhost:5000/callback-21',
         code_challenge: 'challenge123',
         code_challenge_method: 'S256',
       });
     expect(authRes.status).toBe(200);
-    expect(authRes.text).toContain(lastClientId);
+    expect(authRes.text).toContain(newClientId);
   });
 
   it('registers Google OpenAuth client even if disk persistence encounters errors', async () => {

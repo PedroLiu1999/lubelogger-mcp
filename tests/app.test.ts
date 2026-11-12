@@ -162,6 +162,7 @@ describe('App & MCP Endpoints', () => {
       .get('/logo-symbol.png')
       .set('Host', 'mcp.example.com');
     expect(symbolPngRes.status).toBe(200);
+    expect(symbolPngRes.headers['content-type']).toContain('image/png');
 
     // Pruned endpoints must return 404
     for (const pruned of [
