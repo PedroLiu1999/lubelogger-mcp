@@ -6,6 +6,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
+import { FileTokenStore, MAX_REGISTERED_CLIENTS } from '../src/auth/tokenStore.js';
 import type { AppConfig } from '../src/config.js';
 import type { LubeLoggerGateway } from '../src/gateway/types.js';
 
@@ -121,6 +122,37 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(res.status).toBe(201);
     expect(res.body.client_id).toBeDefined();
     expect(res.body.redirect_uris).toEqual(['http://localhost:54321/callback']);
+  });
+
+  it('automatically evicts least recently used dynamic clients when exceeding MAX_REGISTERED_CLIENTS', () => {
+    const store = new FileTokenStore(tmpDataDir);
+
+    for (let i = 1; i <= MAX_REGISTERED_CLIENTS; i++) {
+      store.saveClient({
+        client_id: `client-${i}`,
+        redirect_uris: ['http://localhost/callback'],
+        token_endpoint_auth_method: 'none',
+      });
+    }
+
+    expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
+    expect(store.getClient('client-1')).toBeDefined();
+
+    // Access client-1 to mark it recently used
+    store.getClient('client-1');
+
+    // Register a 21st client
+    store.saveClient({
+      client_id: 'client-21',
+      redirect_uris: ['http://localhost/callback'],
+      token_endpoint_auth_method: 'none',
+    });
+
+    expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
+    expect(store.getClient('client-21')).toBeDefined();
+    expect(store.getClient('client-1')).toBeDefined();
+    // client-2 was least recently used, so it was evicted
+    expect(store.getClient('client-2')).toBeUndefined();
   });
 
   it('registers Google OpenAuth client even if disk persistence encounters errors', async () => {

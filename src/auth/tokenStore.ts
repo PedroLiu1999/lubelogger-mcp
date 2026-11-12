@@ -275,14 +275,33 @@ export class FileTokenStore {
 
   saveClient(client: OAuthClientInformationFull): void {
     if (!this.clients.has(client.client_id) && this.clients.size >= MAX_REGISTERED_CLIENTS) {
-      throw new InvalidClientMetadataError('Client registration limit reached');
+      const oldestClientId = this.clients.keys().next().value;
+      if (oldestClientId) {
+        this.clients.delete(oldestClientId);
+        for (const [token, record] of this.accessTokens.entries()) {
+          if (record.clientId === oldestClientId) {
+            this.accessTokens.delete(token);
+          }
+        }
+        for (const [token, record] of this.refreshTokens.entries()) {
+          if (record.clientId === oldestClientId) {
+            this.refreshTokens.delete(token);
+          }
+        }
+      }
     }
+    this.clients.delete(client.client_id);
     this.clients.set(client.client_id, client);
     this.persistToDisk();
   }
 
   getClient(clientId: string): OAuthClientInformationFull | undefined {
-    return this.clients.get(clientId);
+    const client = this.clients.get(clientId);
+    if (client) {
+      this.clients.delete(clientId);
+      this.clients.set(clientId, client);
+    }
+    return client;
   }
 
   saveTokens(access: StoredAccessToken, refresh?: StoredRefreshToken): void {
