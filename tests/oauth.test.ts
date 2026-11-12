@@ -96,6 +96,7 @@ describe('Embedded OAuth 2.1 Server', () => {
       .set('Host', 'mcp.example.com');
     expect(authServerRes.status).toBe(200);
     expect(authServerRes.body.issuer).toBe('https://mcp.example.com');
+    expect(authServerRes.body.logo_uri).toBe('https://mcp.example.com/logo-symbol.png');
     expect(authServerRes.body.authorization_endpoint).toBe('https://mcp.example.com/authorize');
     expect(authServerRes.body.token_endpoint).toBe('https://mcp.example.com/token');
 
@@ -104,6 +105,7 @@ describe('Embedded OAuth 2.1 Server', () => {
       .set('Host', 'mcp.example.com');
     expect(protectedRes.status).toBe(200);
     expect(protectedRes.body.resource).toBe('https://mcp.example.com/mcp');
+    expect(protectedRes.body.logo_uri).toBe('https://mcp.example.com/logo-symbol.png');
   });
 
   it('registers dynamic clients per RFC 7591', async () => {

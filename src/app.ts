@@ -30,7 +30,6 @@ import {
   GatewayRegistry,
 } from './gateway/gatewayRegistry.js';
 import type { LubeLoggerGateway } from './gateway/types.js';
-import { BRAND_ICON_DATA_URI } from './mcp/icon.js';
 import { createMcpServer } from './mcp/server.js';
 
 export interface CreateAppOptions {
@@ -121,7 +120,7 @@ export function createApp(options: CreateAppOptions): Express {
   const resourceServerUrl = new URL(`${config.PUBLIC_URL}/mcp`);
   const scopesSupported = ['mcp:tools'];
   const oauthProvider = new EmbeddedOAuthProvider(config, fetchFn);
-  const logoUrl = config.LOGO_URL ?? `${config.PUBLIC_URL}/logo.png`;
+  const logoUrl = config.LOGO_URL ?? `${config.PUBLIC_URL}/logo-symbol.png`;
 
   const oauthMetadata: OAuthMetadata = {
     ...createOAuthMetadata({

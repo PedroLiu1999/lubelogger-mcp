@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-11-12
+
+### Fixed
+- **Gemini Connector Brand Icon**: Replaced SVG data URI in `BRAND_ICON_DATA_URI` with a Base64-encoded PNG data URI (`docs/logo-symbol.png`), matching `actual-mcp`. Google Gemini's web client (`gemini.google.com`) strictly enforces Content Security Policy (blocking external image origins via `blocked:csp`) and does not render SVG data URIs in tool connector icon slots. Inlining the raster PNG directly into `serverInfo.icons` with `mimeType: 'image/png'` and sizes `['128x128', '512x512']` fixes the fallback droplet placeholder.
+- **OAuth Discovery Logo URI**: Set default `logo_uri` to `${config.PUBLIC_URL}/logo-symbol.png` so OAuth metadata advertises the square brand symbol.
+
 ## [1.1.2] - 2026-11-12
 
 ### Changed

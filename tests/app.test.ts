@@ -236,6 +236,14 @@ describe('App & MCP Endpoints', () => {
 
     expect(initRes.status).toBe(200);
     expect(initRes.body.result.serverInfo.name).toBe('lubelogger-mcp');
+    expect(initRes.body.result.serverInfo.version).toBe('1.1.3');
+    expect(initRes.body.result.serverInfo.icons).toEqual([
+      {
+        src: expect.stringMatching(/^data:image\/png;base64,/),
+        mimeType: 'image/png',
+        sizes: ['128x128', '512x512'],
+      },
+    ]);
 
     // 2. Tools list
     const toolsRes = await request(app)

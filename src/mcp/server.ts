@@ -55,32 +55,20 @@ export function createMcpServer(
   gateway: LubeLoggerGateway,
   publicUrl?: string,
 ): McpServer {
+  const icons = [
+    {
+      src: BRAND_ICON_DATA_URI,
+      mimeType: 'image/png',
+      sizes: ['128x128', '512x512'],
+    },
+  ];
+
   const server = new McpServer(
     {
       name: 'lubelogger-mcp',
-      version: '1.1.2',
+      version: '1.1.3',
       description: 'Model Context Protocol server for LubeLogger vehicle maintenance tracker',
-      icons: [
-        {
-          src: BRAND_ICON_DATA_URI,
-          mimeType: 'image/svg+xml',
-          sizes: ['256x256'],
-        },
-        ...(publicUrl
-          ? [
-              {
-                src: `${publicUrl}/logo-symbol.svg`,
-                mimeType: 'image/svg+xml',
-                sizes: ['256x256'],
-              },
-              {
-                src: `${publicUrl}/logo.png`,
-                mimeType: 'image/png',
-                sizes: ['760x256'],
-              },
-            ]
-          : []),
-      ],
+      icons,
       websiteUrl: publicUrl ?? 'https://github.com/hargata/lubelog',
     },
     {
