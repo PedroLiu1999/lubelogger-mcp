@@ -167,6 +167,17 @@ function evictExpiredTokens(
   }
 }
 
+function evictTokensForClient(
+  store: Map<string, StoredToken>,
+  clientId: string,
+): void {
+  for (const [key, val] of store.entries()) {
+    if (val.clientId === clientId) {
+      store.delete(key);
+    }
+  }
+}
+
 function getValidToken(
   store: Map<string, StoredToken>,
   token: string,
@@ -273,21 +284,22 @@ export class FileTokenStore {
     return this.clients.size;
   }
 
+  private touchClient(clientId: string, client?: OAuthClientInformationFull): void {
+    const target = client ?? this.clients.get(clientId);
+    if (target) {
+      this.clients.delete(clientId);
+      this.clients.set(clientId, target);
+      this.persistToDisk();
+    }
+  }
+
   saveClient(client: OAuthClientInformationFull): void {
     if (!this.clients.has(client.client_id) && this.clients.size >= MAX_REGISTERED_CLIENTS) {
-      const oldestClientId = this.clients.keys().next().value;
-      if (oldestClientId) {
-        this.clients.delete(oldestClientId);
-        for (const [token, record] of this.accessTokens.entries()) {
-          if (record.clientId === oldestClientId) {
-            this.accessTokens.delete(token);
-          }
-        }
-        for (const [token, record] of this.refreshTokens.entries()) {
-          if (record.clientId === oldestClientId) {
-            this.refreshTokens.delete(token);
-          }
-        }
+      const lruClientId = this.clients.keys().next().value;
+      if (lruClientId) {
+        this.clients.delete(lruClientId);
+        evictTokensForClient(this.accessTokens, lruClientId);
+        evictTokensForClient(this.refreshTokens, lruClientId);
       }
     }
     this.clients.delete(client.client_id);
@@ -298,8 +310,7 @@ export class FileTokenStore {
   getClient(clientId: string): OAuthClientInformationFull | undefined {
     const client = this.clients.get(clientId);
     if (client) {
-      this.clients.delete(clientId);
-      this.clients.set(clientId, client);
+      this.touchClient(clientId, client);
     }
     return client;
   }
@@ -313,16 +324,27 @@ export class FileTokenStore {
   }
 
   getAccessToken(token: string): StoredAccessToken | undefined {
-    return getValidToken(this.accessTokens, token);
+    const record = getValidToken(this.accessTokens, token);
+    if (record) {
+      this.touchClient(record.clientId);
+    }
+    return record;
   }
 
   getUserCredentials(token: string): UserCredentials | undefined {
     const record = getValidToken(this.accessTokens, token);
+    if (record) {
+      this.touchClient(record.clientId);
+    }
     return record?.userCredentials;
   }
 
   getRefreshToken(token: string): StoredRefreshToken | undefined {
-    return getValidToken(this.refreshTokens, token);
+    const record = getValidToken(this.refreshTokens, token);
+    if (record) {
+      this.touchClient(record.clientId);
+    }
+    return record;
   }
 
   revokeToken(clientId: string, token: string): void {

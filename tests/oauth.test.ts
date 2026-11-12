@@ -155,6 +155,45 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(store.getClient('client-2')).toBeUndefined();
   });
 
+  it('preserves active clients during eviction when their access token or user credentials are used', () => {
+    const store = new FileTokenStore(tmpDataDir);
+
+    for (let i = 1; i <= MAX_REGISTERED_CLIENTS; i++) {
+      store.saveClient({
+        client_id: `client-${i}`,
+        redirect_uris: ['http://localhost/callback'],
+        token_endpoint_auth_method: 'none',
+      });
+    }
+
+    // Save token for client-1
+    store.saveTokens({
+      token: 'token-client-1',
+      clientId: 'client-1',
+      scopes: ['mcp:tools'],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      userCredentials: { apiKey: 'key-1' },
+    });
+
+    // Simulate active MCP request: getUserCredentials touches token-client-1
+    const creds = store.getUserCredentials('token-client-1');
+    expect(creds?.apiKey).toBe('key-1');
+
+    // Register a 21st client
+    store.saveClient({
+      client_id: 'client-21',
+      redirect_uris: ['http://localhost/callback'],
+      token_endpoint_auth_method: 'none',
+    });
+
+    expect(store.getClientCount()).toBe(MAX_REGISTERED_CLIENTS);
+    expect(store.getClient('client-21')).toBeDefined();
+    // client-1 was refreshed via getUserCredentials, so it is preserved
+    expect(store.getClient('client-1')).toBeDefined();
+    // client-2 was least recently used, so it was evicted
+    expect(store.getClient('client-2')).toBeUndefined();
+  });
+
   it('registers Google OpenAuth client even if disk persistence encounters errors', async () => {
     const readOnlyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lubelogger-ro-test-'));
     fs.chmodSync(readOnlyDir, 0o555);
