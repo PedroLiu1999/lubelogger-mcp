@@ -19,6 +19,7 @@ import type { Response } from 'express';
 import type { AppConfig } from '../config.js';
 import { verifyLubeLoggerCredentials } from '../gateway/lubeLoggerGateway.js';
 import type { UserCredentials } from '../gateway/types.js';
+import { SVG_LOGO_DARK } from './brandAssets.js';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   FileTokenStore,
@@ -204,7 +205,9 @@ export function renderConsentHtml(options: {
   <div class="auth-card">
     <div style="text-align: center; margin-bottom: 1.5rem;">
       <div style="display: flex; justify-content: center; margin-bottom: 0.75rem;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 256" width="220" style="width: 220px; max-width: 100%; height: auto;" role="img" aria-labelledby="title-lockup-dark"><title id="title-lockup-dark">LubeLogger MCP Logo (Dark Mode)</title><g fill-rule="evenodd" transform="translate(10, 0)"><path fill="#E2E8F0" d="M 128 16 A 112 112 0 1 0 128.01 16 Z M 128 40 A 88 88 0 1 1 127.99 40 Z"/><path fill="#E2E8F0" d="M 40 120 H 92 V 136 H 40 Z"/><path fill="#E2E8F0" d="M 164 120 H 216 V 136 H 164 Z"/><path fill="#E2E8F0" d="M 120 178 H 136 V 216 H 120 Z"/><path fill="#F59E0B" fill-rule="evenodd" d="M 128 46 C 128 46 172 104 172 138 A 44 44 0 0 1 84 138 C 84 104 128 46 128 46 Z M 128 110 C 133 127 141 133 154 138 C 141 143 133 149 128 166 C 123 149 115 143 102 138 C 115 133 123 127 128 110 Z"/></g><text x="270" y="146" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#F8FAFC" letter-spacing="-1.5">lubelogger</text><g transform="translate(615, 96)"><rect width="105" height="54" rx="14" fill="#334155"/><text x="52" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace" font-size="28" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="1.5">MCP</text><path fill="#FBBF24" d="M 96 -6 C 98 0 100 2 106 4 C 100 6 98 8 96 14 C 94 8 92 6 86 4 C 92 2 94 0 96 -6 Z"/></g></svg>
+        <div style="width: 220px; max-width: 100%; height: auto;">
+          ${SVG_LOGO_DARK}
+        </div>
       </div>
       <h1 style="font-size: 1.35rem; font-weight: 700; margin: 0.5rem 0 0.25rem 0; color: #F8FAFC;">Authorize LubeLogger MCP</h1>
       <p style="font-size: 0.8125rem; color: #94A3B8; margin: 0;">Authorize AI assistant access to your vehicle records</p>

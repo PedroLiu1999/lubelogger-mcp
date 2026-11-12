@@ -202,6 +202,12 @@ describe('App & MCP Endpoints', () => {
       expect(res.body.error.code).toBe(-32000);
       expect(res.body.error.message).toBe('Method not allowed.');
     }
+
+    const headRes = await request(app)
+      .head('/mcp')
+      .set('Host', 'mcp.example.com');
+    expect(headRes.status).toBe(405);
+    expect(headRes.headers['allow']).toBe('POST');
   });
 
   it('serves canonical protected resource metadata at /mcp and unmounts root metadata', async () => {

@@ -289,7 +289,6 @@ export class FileTokenStore {
     if (target) {
       this.clients.delete(clientId);
       this.clients.set(clientId, target);
-      this.persistToDisk();
     }
   }
 
@@ -332,11 +331,7 @@ export class FileTokenStore {
   }
 
   getUserCredentials(token: string): UserCredentials | undefined {
-    const record = getValidToken(this.accessTokens, token);
-    if (record) {
-      this.touchClient(record.clientId);
-    }
-    return record?.userCredentials;
+    return this.getAccessToken(token)?.userCredentials;
   }
 
   getRefreshToken(token: string): StoredRefreshToken | undefined {
