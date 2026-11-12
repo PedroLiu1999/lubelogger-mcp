@@ -497,8 +497,8 @@ describe('Embedded OAuth 2.1 Server', () => {
 
     expect(consentRes.status).toBe(200);
     expect(consentRes.text).toContain('Authorize LubeLogger MCP');
-    // Verifies LubeLogger MCP logo is present
-    expect(consentRes.text).toContain('/logo-dark.svg');
+    // Verifies inlined LubeLogger MCP dark logo is present
+    expect(consentRes.text).toContain('title id="title-lockup-dark"');
     // Verifies zero-password security guidance and deeplink are present
     expect(consentRes.text).toContain('Zero-Password Security');
     expect(consentRes.text).toContain('Settings ➔ Profile ➔ API Keys');
