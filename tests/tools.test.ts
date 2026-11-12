@@ -23,7 +23,6 @@ describe('MCP Tools Suite', () => {
       PUBLIC_URL: 'https://mcp.example.com',
       PORT: 3000,
       DATA_DIR: tmpDataDir,
-      OAUTH_ADMIN_PASSWORD: 'admin-password',
       OAUTH_ALLOWED_REDIRECT_URIS: ['http://localhost'],
       LUBELOGGER_URL: 'http://localhost:8383',
       LUBELOGGER_API_KEY: 'test-key',
@@ -131,7 +130,22 @@ describe('MCP Tools Suite', () => {
       })),
     };
 
-    app = createApp({ config, gateway: mockGateway });
+    const mockFetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const urlStr = url.toString();
+      const headers = (init?.headers as Record<string, string>) || {};
+      if (urlStr.includes('/api/vehicles')) {
+        if (headers['x-api-key'] === 'valid-user-api-key') {
+          return new Response(JSON.stringify([{ id: 1, year: 2020, make: 'Subaru', model: 'Outback' }]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    });
+
+    app = createApp({ config, gateway: mockGateway, fetchFn: mockFetch as any });
     token = await issueBearerToken(app);
   });
 

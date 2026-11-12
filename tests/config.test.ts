@@ -5,7 +5,6 @@ describe('loadConfig', () => {
   const baseValidEnv = {
     PUBLIC_URL: 'https://lubelogger-mcp.example.com/',
     DATA_DIR: '/tmp/lubelogger-test-data',
-    OAUTH_ADMIN_PASSWORD: 'super-secret-admin-pass',
     LUBELOGGER_URL: 'http://localhost:8383/',
   };
 
@@ -35,12 +34,27 @@ describe('loadConfig', () => {
     expect(config.LUBELOGGER_API_KEY).toBeUndefined();
   });
 
-  it('throws when neither API key nor Basic Auth credentials are provided', () => {
+  it('loads valid configuration in dynamic auth mode with zero env secrets', () => {
+    const config = loadConfig({
+      PUBLIC_URL: 'https://lubelogger-mcp.example.com/',
+      DATA_DIR: '/tmp/lubelogger-test-data',
+      LUBELOGGER_URL: 'http://localhost:8383/',
+    });
+
+    expect(config.PUBLIC_URL).toBe('https://lubelogger-mcp.example.com');
+    expect(config.LUBELOGGER_URL).toBe('http://localhost:8383');
+    expect(config.LUBELOGGER_API_KEY).toBeUndefined();
+    expect(config.LUBELOGGER_USERNAME).toBeUndefined();
+    expect(config.LUBELOGGER_PASSWORD).toBeUndefined();
+  });
+
+  it('throws when only username is provided without password', () => {
     expect(() =>
       loadConfig({
         ...baseValidEnv,
+        LUBELOGGER_USERNAME: 'admin',
       }),
-    ).toThrow(/Either LUBELOGGER_API_KEY or both LUBELOGGER_USERNAME and LUBELOGGER_PASSWORD/);
+    ).toThrow(/Both LUBELOGGER_USERNAME and LUBELOGGER_PASSWORD must be provided/);
   });
 
   it('parses custom port and custom redirect URIs', () => {

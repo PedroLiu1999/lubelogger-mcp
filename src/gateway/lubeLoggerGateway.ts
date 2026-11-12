@@ -23,6 +23,7 @@ import type {
   SupplyRecord,
   SupportedRecordType,
   TaxRecord,
+  UserCredentials,
   Vehicle,
   VehicleInfo,
 } from './types.js';
@@ -34,6 +35,20 @@ export interface LubeLoggerGatewayOptions {
   password?: string;
   cacheTtlSeconds?: number;
   fetchFn?: typeof fetch;
+}
+
+export function buildAuthHeaders(credentials?: UserCredentials): Record<string, string> {
+  const headers: Record<string, string> = {
+    'culture-invariant': 'true',
+    Accept: 'application/json',
+  };
+  if (credentials?.apiKey) {
+    headers['x-api-key'] = credentials.apiKey;
+  } else if (credentials?.username && credentials?.password) {
+    const token = Buffer.from(`${credentials.username}:${credentials.password}`, 'utf8').toString('base64');
+    headers.Authorization = `Basic ${token}`;
+  }
+  return headers;
 }
 
 interface OperationResponse {
@@ -73,6 +88,34 @@ export class DefaultLubeLoggerGateway implements LubeLoggerGateway {
 
   async initialize(): Promise<void> {
     try {
+      const hasCredentials = Boolean(this.apiKey || this.basicAuthToken);
+      if (!hasCredentials) {
+        // In dynamic/secret-free mode, probe server reachability without throwing on 401/403
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        try {
+          const res = await this.fetchImpl(`${this.serverUrl}/api/vehicles`, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (res.status === 200 || res.status === 401 || res.status === 403) {
+            this.readiness = {
+              ready: true,
+              lastCheckedAt: new Date().toISOString(),
+              serverUrl: this.serverUrl,
+              serverVersion: 'dynamic-auth',
+            };
+            return;
+          }
+          throw new Error(`LubeLogger returned HTTP ${res.status}`);
+        } catch (err) {
+          clearTimeout(timeout);
+          throw err;
+        }
+      }
+
       const version = await this.getServerVersion(false);
       this.readiness = {
         ready: true,
@@ -102,16 +145,17 @@ export class DefaultLubeLoggerGateway implements LubeLoggerGateway {
   }
 
   private getAuthHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-      'culture-invariant': 'true',
-      Accept: 'application/json',
-    };
     if (this.apiKey) {
-      headers['x-api-key'] = this.apiKey;
-    } else if (this.basicAuthToken) {
-      headers.Authorization = `Basic ${this.basicAuthToken}`;
+      return buildAuthHeaders({ apiKey: this.apiKey });
     }
-    return headers;
+    if (this.basicAuthToken) {
+      return {
+        'culture-invariant': 'true',
+        Accept: 'application/json',
+        Authorization: `Basic ${this.basicAuthToken}`,
+      };
+    }
+    return buildAuthHeaders();
   }
 
   private async request<T = unknown>(
@@ -1010,4 +1054,46 @@ export class DefaultLubeLoggerGateway implements LubeLoggerGateway {
 
 export function createLubeLoggerGateway(options: LubeLoggerGatewayOptions): LubeLoggerGateway {
   return new DefaultLubeLoggerGateway(options);
+}
+
+export { GatewayRegistry, createGatewayRegistry } from './gatewayRegistry.js';
+
+export async function verifyLubeLoggerCredentials(
+  serverUrl: string,
+  credentials: UserCredentials,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ valid: boolean; error?: string }> {
+  const normalizedUrl = serverUrl.replace(/\/+$/, '');
+  const headers = buildAuthHeaders(credentials);
+
+  if (!credentials.apiKey && (!credentials.username || !credentials.password)) {
+    return { valid: false, error: 'No credentials provided' };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetchFn(`${normalizedUrl}/api/vehicles`, {
+      method: 'GET',
+      headers,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.status === 200) {
+      return { valid: true };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return { valid: false, error: 'Invalid credentials. LubeLogger rejected the login.' };
+    }
+    return { valid: false, error: `LubeLogger returned HTTP ${res.status}` };
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { valid: false, error: `Connection to LubeLogger timed out at ${normalizedUrl}` };
+    }
+    return {
+      valid: false,
+      error: `Could not connect to LubeLogger (${err instanceof Error ? err.message : String(err)})`,
+    };
+  }
 }

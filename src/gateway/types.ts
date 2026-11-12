@@ -4,6 +4,12 @@ export interface ExtraField {
   value: string;
 }
 
+export interface UserCredentials {
+  apiKey?: string;
+  username?: string;
+  password?: string;
+}
+
 export interface UploadedFile {
   name: string;
   location: string;

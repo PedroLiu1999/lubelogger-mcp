@@ -24,13 +24,19 @@ import {
   normalizeRegistrationBody,
 } from './auth/registration.js';
 import type { AppConfig } from './config.js';
+import {
+  createGatewayRegistry,
+  GatewayRegistry,
+} from './gateway/gatewayRegistry.js';
 import type { LubeLoggerGateway } from './gateway/types.js';
 import { BRAND_ICON_DATA_URI } from './mcp/icon.js';
 import { createMcpServer } from './mcp/server.js';
 
 export interface CreateAppOptions {
   config: AppConfig;
-  gateway: LubeLoggerGateway;
+  gateway?: LubeLoggerGateway;
+  gatewayRegistry?: GatewayRegistry;
+  fetchFn?: typeof fetch;
 }
 
 export function createTokenRateLimiter() {
@@ -76,10 +82,22 @@ export function sanitizeClientMetadata(record: unknown): {
   };
 }
 
-export function createApp({
-  config,
-  gateway,
-}: CreateAppOptions): Express {
+export function createApp(options: CreateAppOptions): Express {
+  const { config, fetchFn } = options;
+  const gatewayRegistry =
+    options.gatewayRegistry ??
+    createGatewayRegistry({
+      serverUrl: config.LUBELOGGER_URL,
+      cacheTtlSeconds: config.CACHE_TTL_SECONDS,
+      fetchFn,
+      defaultGateway: options.gateway,
+      defaultCredentials: {
+        apiKey: config.LUBELOGGER_API_KEY,
+        username: config.LUBELOGGER_USERNAME,
+        password: config.LUBELOGGER_PASSWORD,
+      },
+    });
+
   const app = express();
   app.set('trust proxy', 1);
 
@@ -101,7 +119,7 @@ export function createApp({
   const issuerUrl = new URL(config.PUBLIC_URL);
   const resourceServerUrl = new URL(`${config.PUBLIC_URL}/mcp`);
   const scopesSupported = ['mcp:tools'];
-  const oauthProvider = new EmbeddedOAuthProvider(config);
+  const oauthProvider = new EmbeddedOAuthProvider(config, fetchFn);
   const logoUrl = config.LOGO_URL ?? `${config.PUBLIC_URL}/logo.png`;
 
   const oauthMetadata: OAuthMetadata = {
@@ -131,8 +149,17 @@ export function createApp({
     'utf8',
   );
 
+  const svgLogoDark = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 256" width="760" height="256" role="img" aria-labelledby="title-lockup-dark"><title id="title-lockup-dark">LubeLogger MCP Logo (Dark Mode)</title><g fill-rule="evenodd" transform="translate(10, 0)"><path fill="#E2E8F0" d="M 128 16 A 112 112 0 1 0 128.01 16 Z M 128 40 A 88 88 0 1 1 127.99 40 Z"/><path fill="#E2E8F0" d="M 40 120 H 92 V 136 H 40 Z"/><path fill="#E2E8F0" d="M 164 120 H 216 V 136 H 164 Z"/><path fill="#E2E8F0" d="M 120 178 H 136 V 216 H 120 Z"/><path fill="#F59E0B" fill-rule="evenodd" d="M 128 46 C 128 46 172 104 172 138 A 44 44 0 0 1 84 138 C 84 104 128 46 128 46 Z M 128 110 C 133 127 141 133 154 138 C 141 143 133 149 128 166 C 123 149 115 143 102 138 C 115 133 123 127 128 110 Z"/></g><text x="270" y="146" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#F8FAFC" letter-spacing="-1.5">lubelogger</text><g transform="translate(615, 96)"><rect width="105" height="54" rx="14" fill="#334155"/><text x="52" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace" font-size="28" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="1.5">MCP</text><path fill="#FBBF24" d="M 96 -6 C 98 0 100 2 106 4 C 100 6 98 8 96 14 C 94 8 92 6 86 4 C 92 2 94 0 96 -6 Z"/></g></svg>`,
+    'utf8',
+  );
+
   app.get('/logo.svg', (_req, res) => {
     res.type('image/svg+xml; charset=utf-8').send(svgLogo);
+  });
+
+  app.get('/logo-dark.svg', (_req, res) => {
+    res.type('image/svg+xml; charset=utf-8').send(svgLogoDark);
   });
 
   app.get('/logo.png', (_req, res) => {
@@ -296,7 +323,7 @@ export function createApp({
   });
 
   app.get('/healthz', (_req, res) => {
-    const readiness = gateway.getReadiness();
+    const readiness = gatewayRegistry.getReadiness();
     res.status(200).json({
       status: 'ok',
       lubeLogger: {
@@ -309,7 +336,13 @@ export function createApp({
   });
 
   app.post('/mcp', bearerAuth, async (req, res) => {
-    const server = createMcpServer(gateway, config.PUBLIC_URL);
+    const authHeader = req.headers.authorization;
+    const token = authHeader ? authHeader.split(' ')[1] : undefined;
+    const userCredentials = token ? oauthProvider.getUserCredentials(token) : undefined;
+
+    const activeGateway = gatewayRegistry.getGateway(userCredentials);
+
+    const server = createMcpServer(activeGateway, config.PUBLIC_URL);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

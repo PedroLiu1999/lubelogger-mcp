@@ -134,21 +134,11 @@ set_env "DATA_DIR" "/data"
 # ------------------------------------------------------------------------------
 # Stage 2: Embedded OAuth 2.1
 # ------------------------------------------------------------------------------
-stage "OAuth 2.1 Passphrase"
+stage "OAuth 2.1 Configuration"
 
-say "Choose a strong admin passphrase to protect the authorization consent screen."
-say "When an AI client connects for the first time, you will enter this passphrase to approve access."
+say "Users authenticate dynamically using their real LubeLogger login (account username/password or API key)."
 printf '\n'
 
-OAUTH_ADMIN_PASSWORD="${OAUTH_ADMIN_PASSWORD:-}"
-while [[ -z "$OAUTH_ADMIN_PASSWORD" ]]; do
-  ask_secret OAUTH_ADMIN_PASSWORD "OAuth Admin Passphrase"
-  if [[ -z "$OAUTH_ADMIN_PASSWORD" ]]; then
-    warn "Passphrase cannot be empty."
-  fi
-done
-
-set_env "OAUTH_ADMIN_PASSWORD" "$OAUTH_ADMIN_PASSWORD"
 DEFAULT_REDIRECTS="http://localhost,http://127.0.0.1,https://oauth-redirect.googleusercontent.com/r/,https://oauth-redirect.googleusercontent.com/a/,https://oauth-redirect-sandbox.googleusercontent.com/r/,https://oauth-redirect-sandbox.googleusercontent.com/a/,https://oauth-redirect-test.googleusercontent.com/r/,https://oauth-redirect-test.googleusercontent.com/a/,https://vertexaisearch.cloud.google.com/oauth-redirect"
 set_env "OAUTH_ALLOWED_REDIRECT_URIS" "$DEFAULT_REDIRECTS"
 
@@ -166,24 +156,27 @@ ask LUBELOGGER_URL "LubeLogger URL" "http://host.docker.internal:8383"
 LUBELOGGER_URL="${LUBELOGGER_URL%/}"
 
 say ""
-say "Authentication Method:"
-say "1) API Key (Recommended - create in Settings -> API Keys)"
-say "2) Basic Authentication (Username & Password)"
-ask AUTH_CHOICE "Select [1 or 2]" "1"
+say "Authentication Mode:"
+say "1) Dynamic Authentication (Recommended - sign in with LubeLogger in browser, zero secrets in .env)"
+say "2) Server-wide API Key"
+say "3) Server-wide Basic Authentication"
+ask AUTH_CHOICE "Select [1, 2, or 3]" "1"
 
-if [[ "$AUTH_CHOICE" == "1" ]]; then
+set_env "LUBELOGGER_URL" "$LUBELOGGER_URL"
+
+if [[ "$AUTH_CHOICE" == "2" ]]; then
   LUBELOGGER_API_KEY="${LUBELOGGER_API_KEY:-}"
   while [[ -z "$LUBELOGGER_API_KEY" ]]; do
     ask LUBELOGGER_API_KEY "LubeLogger API Key"
   done
-  set_env "LUBELOGGER_URL" "$LUBELOGGER_URL"
   set_env "LUBELOGGER_API_KEY" "$LUBELOGGER_API_KEY"
-else
+elif [[ "$AUTH_CHOICE" == "3" ]]; then
   ask LUBELOGGER_USERNAME "LubeLogger Username" "admin"
   ask_secret LUBELOGGER_PASSWORD "LubeLogger Password"
-  set_env "LUBELOGGER_URL" "$LUBELOGGER_URL"
   set_env "LUBELOGGER_USERNAME" "$LUBELOGGER_USERNAME"
   set_env "LUBELOGGER_PASSWORD" "$LUBELOGGER_PASSWORD"
+else
+  note "Using dynamic authentication: zero secrets stored in .env."
 fi
 
 set_env "CACHE_TTL_SECONDS" "30"

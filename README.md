@@ -87,9 +87,8 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/PedroLiu1999/lubelogger-
 
 The wizard will:
 1. Configure `.env` with your `PUBLIC_URL` and `PORT`.
-2. Secure your consent screen with `OAUTH_ADMIN_PASSWORD`.
-3. Set up and test the connection to your LubeLogger server (`LUBELOGGER_URL` and `LUBELOGGER_API_KEY`).
-4. Launch the server via Docker Compose.
+2. Configure your LubeLogger server URL (`LUBELOGGER_URL`).
+3. Launch the server via Docker Compose.
 
 ---
 
@@ -122,12 +121,11 @@ curl http://127.0.0.1:3000/healthz
 | `PUBLIC_URL` | Public HTTPS base URL (e.g. `https://lubelogger-mcp.example.com`). | *Required* |
 | `PORT` | Local host port bound to container. | `3000` |
 | `DATA_DIR` | Directory inside container for persistent OAuth token storage. | `/data` |
-| `OAUTH_ADMIN_PASSWORD` | Passphrase entered on the browser consent screen (`/authorize`). | *Required* |
 | `OAUTH_ALLOWED_REDIRECT_URIS` | Comma-separated list of allowed OAuth redirect URI prefixes. | *Localhost & Gemini* |
 | `LUBELOGGER_URL` | Base URL of self-hosted LubeLogger instance. | `http://host.docker.internal:8383` |
-| `LUBELOGGER_API_KEY` | API Key generated in LubeLogger (Settings -> API Keys). | *Optional if Basic Auth used* |
-| `LUBELOGGER_USERNAME` | Username for Basic Auth fallback. | *Optional* |
-| `LUBELOGGER_PASSWORD` | Password for Basic Auth fallback. | *Optional* |
+| `LUBELOGGER_API_KEY` | Optional server-wide default API Key. (Omit to use pure dynamic per-user auth). | *Optional* |
+| `LUBELOGGER_USERNAME` | Username for optional server-wide Basic Auth fallback. | *Optional* |
+| `LUBELOGGER_PASSWORD` | Password for optional server-wide Basic Auth fallback. | *Optional* |
 | `CACHE_TTL_SECONDS` | In-memory vehicle cache TTL in seconds. | `30` |
 
 ---
@@ -148,7 +146,7 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-When connecting for the first time, your browser will open to `/authorize`. Enter your `OAUTH_ADMIN_PASSWORD` to approve access.
+When connecting for the first time, your browser will open to `/authorize`. Authorize access using your **LubeLogger API Key** (recommended for zero-password security) or your **LubeLogger Username & Password**.
 
 ### Cursor & Google Gemini
 

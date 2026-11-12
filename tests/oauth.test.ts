@@ -13,6 +13,7 @@ describe('Embedded OAuth 2.1 Server', () => {
   let tmpDataDir: string;
   let config: AppConfig;
   let mockGateway: LubeLoggerGateway;
+  let mockFetch: ReturnType<typeof vi.fn>;
   let app: Express;
 
   beforeEach(() => {
@@ -22,7 +23,6 @@ describe('Embedded OAuth 2.1 Server', () => {
       PUBLIC_URL: 'https://mcp.example.com',
       PORT: 3000,
       DATA_DIR: tmpDataDir,
-      OAUTH_ADMIN_PASSWORD: 'admin-password',
       OAUTH_ALLOWED_REDIRECT_URIS: [
         'http://localhost',
         'http://127.0.0.1',
@@ -32,6 +32,28 @@ describe('Embedded OAuth 2.1 Server', () => {
       LUBELOGGER_API_KEY: 'test-key',
       CACHE_TTL_SECONDS: 30,
     };
+
+    mockFetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const urlStr = url.toString();
+      const headers = (init?.headers as Record<string, string>) || {};
+      if (urlStr.includes('/api/vehicles')) {
+        if (headers['x-api-key'] === 'valid-user-api-key') {
+          return new Response(JSON.stringify([{ id: 1, year: 2020, make: 'Subaru', model: 'Outback' }]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        const auth = headers.Authorization || headers.authorization;
+        if (auth === `Basic ${Buffer.from('validuser:validpass').toString('base64')}`) {
+          return new Response(JSON.stringify([{ id: 1, year: 2020, make: 'Subaru', model: 'Outback' }]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    });
 
     mockGateway = {
       initialize: vi.fn(async () => {}),
@@ -61,7 +83,7 @@ describe('Embedded OAuth 2.1 Server', () => {
       createBackup: vi.fn(async () => ({ success: true, message: 'ok' })),
     };
 
-    app = createApp({ config, gateway: mockGateway });
+    app = createApp({ config, gateway: mockGateway, fetchFn: mockFetch as any });
   });
 
   afterEach(() => {
@@ -120,7 +142,7 @@ describe('Embedded OAuth 2.1 Server', () => {
     expect(consentRes.status).toBe(200);
     expect(consentRes.text).toContain('Authorize LubeLogger MCP');
 
-    // 2. Reject incorrect password
+    // 2. Reject incorrect credentials
     const wrongPassRes = await request(app)
       .post('/authorize')
       .set('Host', 'mcp.example.com')
@@ -131,12 +153,13 @@ describe('Embedded OAuth 2.1 Server', () => {
         redirect_uri: redirectUri,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
+        username: 'wronguser',
         password: 'wrong-password',
       });
     expect(wrongPassRes.status).toBe(401);
-    expect(wrongPassRes.text).toContain('Invalid admin passphrase');
+    expect(wrongPassRes.text).toContain('Invalid credentials');
 
-    // 3. Approve with correct password
+    // 3. Approve with correct LubeLogger user credentials
     const approveRes = await request(app)
       .post('/authorize')
       .set('Host', 'mcp.example.com')
@@ -148,7 +171,8 @@ describe('Embedded OAuth 2.1 Server', () => {
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         state: 'xyz123',
-        password: 'admin-password',
+        username: 'validuser',
+        password: 'validpass',
       });
     expect(approveRes.status).toBe(302);
     const location = new URL(approveRes.headers.location);
@@ -202,5 +226,249 @@ describe('Embedded OAuth 2.1 Server', () => {
         token: refreshRes.body.access_token,
       });
     expect(revokeRes.status).toBe(200);
+  });
+
+  it('authenticates dynamically using LubeLogger username and password', async () => {
+    const clientId = 'dyn-client-1';
+    const redirectUri = 'http://localhost:54321/callback';
+    const codeVerifier = 'valid-pkce-verifier-string-with-at-least-43-characters-12345';
+    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+
+    const approveRes = await request(app)
+      .post('/authorize')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state: 'user-auth-state',
+        username: 'validuser',
+        password: 'validpass',
+      });
+
+    expect(approveRes.status).toBe(302);
+    const location = new URL(approveRes.headers.location);
+    const authCode = location.searchParams.get('code');
+    expect(authCode).toBeTruthy();
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code: authCode!,
+        code_verifier: codeVerifier,
+        redirect_uri: redirectUri,
+      });
+
+    expect(tokenRes.status).toBe(200);
+    expect(tokenRes.body.access_token).toBeDefined();
+
+    // Verify token can make a call to /mcp and receives valid response
+    const mcpRes = await request(app)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${tokenRes.body.access_token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/list',
+      });
+
+    expect(mcpRes.status).toBe(200);
+    expect(mcpRes.body.result?.tools?.length).toBe(15);
+  });
+
+  it('authenticates dynamically using LubeLogger API key', async () => {
+    const clientId = 'dyn-client-2';
+    const redirectUri = 'http://localhost:54321/callback';
+    const codeVerifier = 'valid-pkce-verifier-string-with-at-least-43-characters-12345';
+    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+
+    const approveRes = await request(app)
+      .post('/authorize')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state: 'api-key-state',
+        api_key: 'valid-user-api-key',
+      });
+
+    expect(approveRes.status).toBe(302);
+    const location = new URL(approveRes.headers.location);
+    const authCode = location.searchParams.get('code');
+    expect(authCode).toBeTruthy();
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code: authCode!,
+        code_verifier: codeVerifier,
+        redirect_uri: redirectUri,
+      });
+
+    expect(tokenRes.status).toBe(200);
+    expect(tokenRes.body.access_token).toBeDefined();
+
+    // Verify token can make a call to /mcp with API key credentials
+    const mcpRes = await request(app)
+      .post('/mcp')
+      .set('Host', 'mcp.example.com')
+      .set('Authorization', `Bearer ${tokenRes.body.access_token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/list',
+      });
+
+    expect(mcpRes.status).toBe(200);
+    expect(mcpRes.body.result?.tools?.length).toBe(15);
+  });
+
+  it('rejects invalid LubeLogger credentials', async () => {
+    const dynamicConfig: AppConfig = {
+      ...config,
+      LUBELOGGER_API_KEY: undefined,
+    };
+    const dynamicApp = createApp({ config: dynamicConfig, gateway: mockGateway, fetchFn: mockFetch as any });
+
+    const rejectRes = await request(dynamicApp)
+      .post('/authorize')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        response_type: 'code',
+        client_id: 'client-fail',
+        redirect_uri: 'http://localhost:54321/callback',
+        code_challenge: 'challenge123',
+        code_challenge_method: 'S256',
+        username: 'wronguser',
+        password: 'wrongpassword',
+      });
+
+    expect(rejectRes.status).toBe(401);
+    expect(rejectRes.text).toContain('Invalid credentials. LubeLogger rejected the login.');
+  });
+
+  it('encrypts user credentials at rest on disk in oauth-tokens.json', async () => {
+    const clientId = 'dyn-client-encrypted';
+    const redirectUri = 'http://localhost:54321/callback';
+    const codeVerifier = 'valid-pkce-verifier-string-with-at-least-43-characters-12345';
+    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+
+    const approveRes = await request(app)
+      .post('/authorize')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state: 'api-state',
+        username: 'validuser',
+        password: 'validpass',
+      });
+
+    const location = new URL(approveRes.headers.location);
+    const authCode = location.searchParams.get('code');
+
+    await request(app)
+      .post('/token')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code: authCode!,
+        code_verifier: codeVerifier,
+        redirect_uri: redirectUri,
+      });
+
+    const tokensFilePath = path.join(tmpDataDir, 'oauth-tokens.json');
+    expect(fs.existsSync(tokensFilePath)).toBe(true);
+
+    const fileContent = fs.readFileSync(tokensFilePath, 'utf8');
+    // Ensure plaintext password is NOT in the JSON file
+    expect(fileContent).not.toContain('validpass');
+    // Ensure encrypted payload is present
+    expect(fileContent).toContain('encryptedCredentials');
+    expect(fileContent).toContain('tag');
+    expect(fileContent).toContain('iv');
+
+    // Verify key file was created with restricted permissions
+    const keyFilePath = path.join(tmpDataDir, '.token_encryption_key');
+    expect(fs.existsSync(keyFilePath)).toBe(true);
+  });
+
+  it('renders API-key-first branded authorization page with LubeLogger MCP logo and zero-password guidance', async () => {
+    const consentRes = await request(app)
+      .get('/authorize')
+      .set('Host', 'mcp.example.com')
+      .query({
+        response_type: 'code',
+        client_id: 'test-client-branded',
+        redirect_uri: 'http://localhost:54321/callback',
+        code_challenge: 'challenge123',
+        code_challenge_method: 'S256',
+      });
+
+    expect(consentRes.status).toBe(200);
+    expect(consentRes.text).toContain('Authorize LubeLogger MCP');
+    // Verifies LubeLogger MCP logo is present
+    expect(consentRes.text).toContain('/logo-dark.svg');
+    // Verifies API Key tab is active by default
+    expect(consentRes.text).toMatch(/id="tab-api"[^>]*class="[^"]*active[^"]*"/);
+    // Verifies hidden auth_mode is set to api
+    expect(consentRes.text).toContain('name="auth_mode" id="auth_mode" value="api"');
+    // Verifies zero-password security guidance and deeplink are present
+    expect(consentRes.text).toContain('Zero-Password Security');
+    expect(consentRes.text).toContain('Settings ➔ Profile ➔ API Keys');
+    expect(consentRes.text).toContain('href="http://localhost:8383"');
+    expect(consentRes.text).toContain('Editor or Manager permissions');
+  });
+
+  it('serves dark mode LubeLogger MCP brand logo', async () => {
+    const res = await request(app)
+      .get('/logo-dark.svg')
+      .set('Host', 'mcp.example.com');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('image/svg+xml');
+    const content = res.text || res.body.toString('utf8');
+    expect(content).toContain('LubeLogger MCP Logo (Dark Mode)');
+  });
+
+  it('requires user authentication and rejects missing credentials', async () => {
+    const rejectRes = await request(app)
+      .post('/authorize')
+      .set('Host', 'mcp.example.com')
+      .type('form')
+      .send({
+        response_type: 'code',
+        client_id: 'client-no-creds',
+        redirect_uri: 'http://localhost:54321/callback',
+        code_challenge: 'challenge123',
+        code_challenge_method: 'S256',
+      });
+
+    expect(rejectRes.status).toBe(401);
+    expect(rejectRes.text).toContain('Please enter your LubeLogger API key.');
   });
 });

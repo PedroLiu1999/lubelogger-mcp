@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import {
   InvalidClientMetadataError,
   InvalidGrantError,
@@ -17,6 +17,8 @@ import type {
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { Response } from 'express';
 import type { AppConfig } from '../config.js';
+import { verifyLubeLoggerCredentials } from '../gateway/lubeLoggerGateway.js';
+import type { UserCredentials } from '../gateway/types.js';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   FileTokenStore,
@@ -113,10 +115,11 @@ export function renderConsentHtml(options: {
   scopes?: string[];
   resource?: string;
   errorMessage?: string;
+  lubeLoggerUrl?: string;
 }): string {
   const scopesText = options.scopes && options.scopes.length > 0 ? options.scopes.join(' ') : 'mcp:tools';
   const errorBanner = options.errorMessage
-    ? `<div role="alert" style="color: #b91c1c; background: #fee2e2; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1.25rem; font-size: 0.875rem;">${escapeHtml(options.errorMessage)}</div>`
+    ? `<div role="alert" style="color: #f87171; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1.25rem; font-size: 0.875rem;">${escapeHtml(options.errorMessage)}</div>`
     : '';
 
   return `<!DOCTYPE html>
@@ -125,20 +128,100 @@ export function renderConsentHtml(options: {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <title>Authorize LubeLogger MCP</title>
+  <title>LubeLogger MCP · Sign In</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0F172A;
+      color: #F8FAFC;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .auth-card {
+      background: #1E293B;
+      max-width: 26rem;
+      width: 100%;
+      padding: 2.25rem;
+      border-radius: 1rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      border: 1px solid #334155;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-radius: 0.375rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #94A3B8;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active {
+      background: #0F172A;
+      color: #F8FAFC;
+      border-color: #475569;
+    }
+    .input-field {
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      background: #0F172A;
+      border: 1px solid #334155;
+      border-radius: 0.5rem;
+      color: #F8FAFC;
+      font-size: 0.9375rem;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .input-field:focus {
+      border-color: #0284C7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+    }
+    .submit-btn {
+      width: 100%;
+      background: #0284C7;
+      color: #FFFFFF;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+      transition: background 0.15s ease;
+    }
+    .submit-btn:hover {
+      background: #0369A1;
+    }
+  </style>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F8FAFC; color: #0F172A; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; padding: 1.5rem; box-sizing: border-box;">
-  <div style="background: #FFFFFF; max-width: 28rem; width: 100%; padding: 2.25rem; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04); border: 1px solid #E2E8F0;">
-    <div style="text-align: center; margin-bottom: 1.75rem;">
-      <img src="/logo.png" alt="lubelogger-mcp" width="68" height="68" style="border-radius: 16px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);" />
-      <h1 style="font-size: 1.35rem; font-weight: 700; margin: 1rem 0 0.25rem 0; color: #0F172A;">Authorize LubeLogger MCP</h1>
-      <p style="font-size: 0.8125rem; color: #64748B; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Model Context Protocol</p>
+<body>
+  <div class="auth-card">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <img src="/logo-dark.svg" alt="LubeLogger MCP" style="width: 220px; max-width: 100%; height: auto; margin-bottom: 0.75rem;" />
+      <h1 style="font-size: 1.35rem; font-weight: 700; margin: 0.5rem 0 0.25rem 0; color: #F8FAFC;">Authorize LubeLogger MCP</h1>
+      <p style="font-size: 0.8125rem; color: #94A3B8; margin: 0;">Authorize AI assistant access to your vehicle records</p>
     </div>
-    <p style="font-size: 0.9375rem; line-height: 1.5; color: #334155; margin-bottom: 1.25rem;">
-      Client <strong style="color: #0F172A;">${escapeHtml(options.clientId)}</strong> is requesting access to your LubeLogger garage (scope: <code style="background: #F1F5F9; color: #0284C7; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.85em;">${escapeHtml(scopesText)}</code>).
-    </p>
+
+    <div style="background: rgba(15, 23, 42, 0.6); padding: 0.625rem 0.875rem; border-radius: 0.5rem; border: 1px solid #334155; margin-bottom: 1.25rem; font-size: 0.8125rem; color: #94A3B8;">
+      Client <strong style="color: #F8FAFC;">${escapeHtml(options.clientId)}</strong> is requesting access (scope: <code style="color: #38BDF8;">${escapeHtml(scopesText)}</code>).
+    </div>
+
     ${errorBanner}
+
+    <!-- Tab navigation -->
+    <div style="display: flex; gap: 0.375rem; background: rgba(15, 23, 42, 0.4); padding: 0.25rem; border-radius: 0.5rem; margin-bottom: 1.25rem; border: 1px solid #334155;">
+      <button type="button" id="tab-api" class="tab-btn active" onclick="switchTab('api')">API Key (Recommended)</button>
+      <button type="button" id="tab-account" class="tab-btn" onclick="switchTab('account')">Account</button>
+    </div>
+
     <form method="POST" action="/authorize">
+      <input type="hidden" name="auth_mode" id="auth_mode" value="api" />
       <input type="hidden" name="response_type" value="code" />
       <input type="hidden" name="client_id" value="${escapeHtml(options.clientId)}" />
       <input type="hidden" name="redirect_uri" value="${escapeHtml(options.redirectUri)}" />
@@ -147,22 +230,66 @@ export function renderConsentHtml(options: {
       ${options.state !== undefined ? `<input type="hidden" name="state" value="${escapeHtml(options.state)}" />` : ''}
       ${options.scopes && options.scopes.length > 0 ? `<input type="hidden" name="scope" value="${escapeHtml(options.scopes.join(' '))}" />` : ''}
       ${options.resource !== undefined ? `<input type="hidden" name="resource" value="${escapeHtml(options.resource)}" />` : ''}
-      <div style="margin-bottom: 1.25rem;">
-        <label for="password" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #1E293B;">Admin Passphrase</label>
-        <input id="password" type="password" name="password" required autofocus style="width: 100%; padding: 0.625rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 0.5rem; font-size: 1rem; box-sizing: border-box; outline: none;" />
+
+      <!-- API Key Panel (Default) -->
+      <div id="panel-api">
+        <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8125rem; color: #94A3B8; line-height: 1.4;">
+          <div style="display: flex; align-items: center; gap: 0.375rem; color: #38BDF8; font-weight: 600; margin-bottom: 0.25rem;">
+            <span>🛡️ Zero-Password Security</span>
+          </div>
+          <div>Your account password is never collected or stored. In LubeLogger, go to ${options.lubeLoggerUrl ? `<a href="${escapeHtml(options.lubeLoggerUrl)}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: underline;"><strong>Settings ➔ Profile ➔ API Keys</strong></a>` : `<strong>Settings ➔ Profile ➔ API Keys</strong>`} and click <strong>Generate</strong> with Editor or Manager permissions.</div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label for="api_key" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">LubeLogger API Key</label>
+          <input id="api_key" type="password" name="api_key" class="input-field" placeholder="Enter API Key (x-api-key)" autocomplete="off" />
+        </div>
       </div>
-      <button type="submit" style="width: 100%; background: #0284C7; color: #FFFFFF; border: none; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);">Approve Access</button>
+
+      <!-- Account Panel -->
+      <div id="panel-account" style="display: none;">
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 0.5rem; padding: 0.625rem 0.75rem; margin-bottom: 1rem; font-size: 0.75rem; color: #FBBF24; line-height: 1.4;">
+          ⚠️ <strong>Security Notice:</strong> Using your account password requires two-way encrypted storage. We strongly recommend using the <strong>API Key</strong> tab instead.
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label for="username" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">LubeLogger Username</label>
+          <input id="username" type="text" name="username" class="input-field" placeholder="Username" autocomplete="username" />
+        </div>
+        <div style="margin-bottom: 1.25rem;">
+          <label for="password" style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #CBD5E1;">Password</label>
+          <input id="password" type="password" name="password" class="input-field" placeholder="Account password" autocomplete="current-password" />
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Sign in &amp; Authorize</button>
     </form>
   </div>
+
+  <script>
+    function switchTab(mode) {
+      const tabAccount = document.getElementById('tab-account');
+      const tabApi = document.getElementById('tab-api');
+      const panelAccount = document.getElementById('panel-account');
+      const panelApi = document.getElementById('panel-api');
+      if (mode === 'api') {
+        tabApi.classList.add('active');
+        tabAccount.classList.remove('active');
+        panelApi.style.display = 'block';
+        panelAccount.style.display = 'none';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+      } else {
+        tabAccount.classList.add('active');
+        tabApi.classList.remove('active');
+        panelAccount.style.display = 'block';
+        panelApi.style.display = 'none';
+        document.getElementById('api_key').value = '';
+      }
+      document.getElementById('auth_mode').value = mode;
+    }
+  </script>
 </body>
 </html>`;
-}
-
-export function verifySecretConstantTime(candidate: string, expected: string): boolean {
-  const candidateDigest = createHash('sha256').update(candidate, 'utf8').digest();
-  const expectedDigest = createHash('sha256').update(expected, 'utf8').digest();
-  const digestsMatch = timingSafeEqual(candidateDigest, expectedDigest);
-  return digestsMatch && candidate.length === expected.length;
 }
 
 interface AuthorizationCodeRecord {
@@ -173,6 +300,7 @@ interface AuthorizationCodeRecord {
   scopes: string[];
   resource?: URL;
   expiresAt: number;
+  userCredentials?: UserCredentials;
 }
 
 export class EmbeddedOAuthProvider implements OAuthServerProvider {
@@ -181,11 +309,13 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
   private readonly tokenStore: FileTokenStore;
   private readonly allowedRedirectUris: Set<string>;
   private readonly authorizationCodes = new Map<string, AuthorizationCodeRecord>();
+  private readonly fetchFn: typeof fetch;
 
-  constructor(config: AppConfig) {
+  constructor(config: AppConfig, fetchFn: typeof fetch = fetch) {
     this.config = config;
     this.tokenStore = new FileTokenStore(config.DATA_DIR);
     this.allowedRedirectUris = new Set<string>(config.OAUTH_ALLOWED_REDIRECT_URIS);
+    this.fetchFn = fetchFn;
 
     this.store = {
       getClient: (clientId: string) => {
@@ -287,6 +417,10 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
     return evictedCount;
   }
 
+  getUserCredentials(token: string): UserCredentials | undefined {
+    return this.tokenStore.getUserCredentials(token);
+  }
+
   get clientsStore(): OAuthRegisteredClientsStore {
     return this.store;
   }
@@ -298,17 +432,67 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
   ): Promise<void> {
     const req = res.req;
     if (req && req.method === 'POST') {
-      const submittedPassword =
-        typeof req.body?.password === 'string'
-          ? req.body.password
-          : typeof req.body?.passphrase === 'string'
-            ? req.body.passphrase
+      const authMode = typeof req.body?.auth_mode === 'string' ? req.body.auth_mode : undefined;
+
+      const submittedApiKey =
+        typeof req.body?.api_key === 'string' && req.body.api_key.trim() !== ''
+          ? req.body.api_key.trim()
+          : typeof req.body?.apiKey === 'string' && req.body.apiKey.trim() !== ''
+            ? req.body.apiKey.trim()
             : undefined;
 
-      if (
-        submittedPassword === undefined ||
-        !verifySecretConstantTime(submittedPassword, this.config.OAUTH_ADMIN_PASSWORD)
-      ) {
+      const submittedUsername =
+        typeof req.body?.username === 'string' && req.body.username.trim() !== ''
+          ? req.body.username.trim()
+          : undefined;
+
+      const submittedPassword =
+        typeof req.body?.password === 'string' && req.body.password !== ''
+          ? req.body.password
+          : undefined;
+
+      let verifiedUserCredentials: UserCredentials | undefined;
+      let authPassed = false;
+      let failureReason = 'Invalid credentials. Please provide valid LubeLogger login details.';
+
+      // Case 1: API Key tab or api_key submitted (default)
+      if (authMode === 'api' || (!authMode && submittedApiKey) || (!authMode && !submittedUsername)) {
+        if (!submittedApiKey) {
+          failureReason = 'Please enter your LubeLogger API key.';
+        } else {
+          const verifyResult = await verifyLubeLoggerCredentials(
+            this.config.LUBELOGGER_URL,
+            { apiKey: submittedApiKey },
+            this.fetchFn,
+          );
+          if (verifyResult.valid) {
+            authPassed = true;
+            verifiedUserCredentials = { apiKey: submittedApiKey };
+          } else {
+            failureReason = verifyResult.error || 'Invalid LubeLogger API key.';
+          }
+        }
+      }
+      // Case 2: Username & Password tab
+      else {
+        if (!submittedUsername || !submittedPassword) {
+          failureReason = 'Please enter both your LubeLogger username and password.';
+        } else {
+          const verifyResult = await verifyLubeLoggerCredentials(
+            this.config.LUBELOGGER_URL,
+            { username: submittedUsername, password: submittedPassword },
+            this.fetchFn,
+          );
+          if (verifyResult.valid) {
+            authPassed = true;
+            verifiedUserCredentials = { username: submittedUsername, password: submittedPassword };
+          } else {
+            failureReason = verifyResult.error || 'Invalid LubeLogger username or password.';
+          }
+        }
+      }
+
+      if (!authPassed) {
         const errorHtml = renderConsentHtml({
           clientId: client.client_id,
           redirectUri: params.redirectUri,
@@ -316,7 +500,8 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
           state: params.state,
           scopes: params.scopes,
           resource: params.resource?.href,
-          errorMessage: 'Invalid admin passphrase.',
+          errorMessage: failureReason,
+          lubeLoggerUrl: this.config.LUBELOGGER_URL,
         });
         res.status(401).type('html').send(errorHtml);
         return;
@@ -333,6 +518,7 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
         scopes: params.scopes && params.scopes.length > 0 ? params.scopes : ['mcp:tools'],
         resource: params.resource,
         expiresAt: nowSeconds + 600,
+        userCredentials: verifiedUserCredentials,
       });
 
       const targetUrl = new URL(params.redirectUri);
@@ -351,6 +537,7 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
       state: params.state,
       scopes: params.scopes,
       resource: params.resource?.href,
+      lubeLoggerUrl: this.config.LUBELOGGER_URL,
     });
     res.status(200).type('html').send(html);
   }
@@ -402,6 +589,7 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
         scopes: record.scopes,
         expiresAt: nowSeconds + ACCESS_TOKEN_TTL_SECONDS,
         resource: effectiveResource,
+        userCredentials: record.userCredentials,
       },
       {
         token: refreshToken,
@@ -409,6 +597,7 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
         scopes: record.scopes,
         expiresAt: nowSeconds + REFRESH_TOKEN_TTL_SECONDS,
         resource: effectiveResource,
+        userCredentials: record.userCredentials,
       },
     );
 
@@ -450,6 +639,7 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
         scopes: effectiveScopes,
         expiresAt: nowSeconds + ACCESS_TOKEN_TTL_SECONDS,
         resource: effectiveResource,
+        userCredentials: existingRefresh.userCredentials,
       },
       {
         token: existingRefresh.token,
@@ -457,6 +647,7 @@ export class EmbeddedOAuthProvider implements OAuthServerProvider {
         scopes: effectiveScopes,
         expiresAt: extendedRefreshExpiresAt,
         resource: effectiveResource,
+        userCredentials: existingRefresh.userCredentials,
       },
     );
 

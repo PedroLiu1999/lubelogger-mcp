@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createGatewayRegistry } from '../src/gateway/gatewayRegistry.js';
 import { DefaultLubeLoggerGateway } from '../src/gateway/lubeLoggerGateway.js';
 
 describe('LubeLoggerGateway', () => {
@@ -230,5 +231,45 @@ describe('LubeLoggerGateway', () => {
     });
 
     await expect(gateway.listVehicles()).rejects.toThrow(/LubeLogger authentication failed/);
+  });
+
+  it('marks readiness as dynamic-auth ready on 401 probe when secret-free', async () => {
+    const mockFetch = vi.fn(async () => {
+      return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    });
+
+    const gateway = new DefaultLubeLoggerGateway({
+      serverUrl: 'http://test-lubelogger:8383',
+      fetchFn: mockFetch as any,
+    });
+
+    await gateway.initialize();
+    const readiness = gateway.getReadiness();
+    expect(readiness.ready).toBe(true);
+    expect(readiness.serverVersion).toBe('dynamic-auth');
+  });
+
+  it('GatewayRegistry reuses cached gateway instance across requests with same credentials', async () => {
+    const mockFetch = vi.fn(async () => {
+      return new Response(JSON.stringify(mockVehicles), { status: 200 });
+    });
+
+    const registry = createGatewayRegistry({
+      serverUrl: 'http://test-lubelogger:8383',
+      fetchFn: mockFetch as any,
+    });
+
+    const gw1 = registry.getGateway({ apiKey: 'user-key-1' });
+    const gw2 = registry.getGateway({ apiKey: 'user-key-1' });
+    const gwOther = registry.getGateway({ apiKey: 'user-key-2' });
+    const gwDefault = registry.getGateway();
+
+    // Reuses same instance for same key
+    expect(gw1).toBe(gw2);
+    // Distinct instances for different keys
+    expect(gw1).not.toBe(gwOther);
+    expect(gw1).not.toBe(gwDefault);
+
+    await registry.shutdown();
   });
 });

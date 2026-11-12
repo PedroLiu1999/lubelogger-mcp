@@ -37,7 +37,6 @@ const configSchema = z
       .optional(),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     DATA_DIR: nonEmptyString,
-    OAUTH_ADMIN_PASSWORD: nonEmptyString,
     OAUTH_ALLOWED_REDIRECT_URIS: z
       .string()
       .default(DEFAULT_ALLOWED_REDIRECT_URIS.join(','))
@@ -70,13 +69,13 @@ const configSchema = z
   })
   .refine(
     (cfg) => {
-      const hasApiKey = Boolean(cfg.LUBELOGGER_API_KEY);
-      const hasBasicAuth = Boolean(cfg.LUBELOGGER_USERNAME && cfg.LUBELOGGER_PASSWORD);
-      return hasApiKey || hasBasicAuth;
+      if (cfg.LUBELOGGER_USERNAME && !cfg.LUBELOGGER_PASSWORD) return false;
+      if (!cfg.LUBELOGGER_USERNAME && cfg.LUBELOGGER_PASSWORD) return false;
+      return true;
     },
     {
-      message: 'Either LUBELOGGER_API_KEY or both LUBELOGGER_USERNAME and LUBELOGGER_PASSWORD must be provided for authentication',
-      path: ['LUBELOGGER_API_KEY'],
+      message: 'Both LUBELOGGER_USERNAME and LUBELOGGER_PASSWORD must be provided if using basic auth',
+      path: ['LUBELOGGER_PASSWORD'],
     },
   );
 
