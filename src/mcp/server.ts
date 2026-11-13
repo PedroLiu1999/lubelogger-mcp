@@ -66,7 +66,7 @@ export function createMcpServer(
   const server = new McpServer(
     {
       name: 'lubelogger-mcp',
-      version: '1.2.0',
+      version: '1.2.1',
       description: 'Model Context Protocol server for LubeLogger vehicle maintenance tracker',
       icons,
       websiteUrl: publicUrl ?? 'https://github.com/hargata/lubelog',
