@@ -1035,6 +1035,7 @@ export class DefaultLubeLoggerGateway implements LubeLoggerGateway {
   async recalculateOdometer(vehicleId: number): Promise<{ success: boolean; message: string }> {
     const res = await this.request<OperationResponse>(
       `/api/vehicle/odometerrecords/recalculate?vehicleId=${vehicleId}`,
+      { method: 'PUT' },
     );
     return {
       success: true,

@@ -272,4 +272,30 @@ describe('LubeLoggerGateway', () => {
 
     await registry.shutdown();
   });
+
+  it('recalculateOdometer sends HTTP PUT to LubeLogger and handles success', async () => {
+    let capturedMethod = '';
+    let capturedUrl = '';
+    const mockFetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      capturedMethod = init?.method ?? 'GET';
+      capturedUrl = url.toString();
+      if (capturedMethod !== 'PUT') {
+        return new Response('Method Not Allowed', { status: 405 });
+      }
+      return new Response(JSON.stringify({ success: true, message: 'Odometer Records Adjusted(5)' }), {
+        status: 200,
+      });
+    });
+
+    const gateway = new DefaultLubeLoggerGateway({
+      serverUrl: 'http://test-lubelogger:8383',
+      apiKey: 'key',
+      fetchFn: mockFetch as any,
+    });
+
+    const result = await gateway.recalculateOdometer(1);
+    expect(result.success).toBe(true);
+    expect(capturedMethod).toBe('PUT');
+    expect(capturedUrl).toContain('/api/vehicle/odometerrecords/recalculate?vehicleId=1');
+  });
 });
