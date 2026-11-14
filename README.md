@@ -12,6 +12,7 @@
 [![Node Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-Streamable%20HTTP-blueviolet.svg)](https://modelcontextprotocol.io/)
 [![LubeLogger API](https://img.shields.io/badge/LubeLogger-REST%20API-0284c7.svg)](https://lubelogger.com/)
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/pedroliu1999/lubelogger-mcp)
 
 A self-contained Model Context Protocol (MCP) server that connects a self-hosted [LubeLogger](https://lubelogger.com/) vehicle maintenance instance to AI assistants, including Claude Desktop, Cursor, Google Gemini, and custom agents.
 
